@@ -124,7 +124,13 @@ async function startServer() {
 
   // Health check
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", env: process.env.NODE_ENV, distExists: fs.existsSync(path.resolve(__dirname, "dist")) });
+    res.json({ 
+      status: "ok", 
+      env: process.env.NODE_ENV, 
+      cwd: process.cwd(),
+      distExists: fs.existsSync(path.join(process.cwd(), "dist")),
+      distContents: fs.existsSync(path.join(process.cwd(), "dist")) ? fs.readdirSync(path.join(process.cwd(), "dist")) : []
+    });
   });
 
   // Configure multer for file uploads
@@ -247,7 +253,7 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  const distPath = path.resolve(__dirname, "dist");
+  const distPath = path.join(process.cwd(), "dist");
   const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(distPath);
 
   if (!isProduction) {
@@ -262,11 +268,32 @@ async function startServer() {
     console.log(`Starting in production mode. Serving static files from: ${distPath}`);
     if (fs.existsSync(distPath)) {
       console.log("Dist directory contents:", fs.readdirSync(distPath));
+      if (fs.existsSync(path.join(distPath, "assets"))) {
+        console.log("Assets directory contents:", fs.readdirSync(path.join(distPath, "assets")));
+      }
     } else {
       console.error("Dist directory does not exist!");
     }
+
+    // Explicitly serve assets with correct MIME types
+    app.use("/assets", express.static(path.join(distPath, "assets"), {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith(".js")) {
+          res.setHeader("Content-Type", "application/javascript");
+        } else if (filePath.endsWith(".css")) {
+          res.setHeader("Content-Type", "text/css");
+        }
+      }
+    }));
+
     app.use(express.static(distPath));
+    
     app.get("*", (req, res) => {
+      // If it's an API request that reached here, it's a 404
+      if (req.url.startsWith("/api/")) {
+        return res.status(404).json({ error: "API route not found" });
+      }
+
       const indexPath = path.resolve(distPath, "index.html");
       if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
