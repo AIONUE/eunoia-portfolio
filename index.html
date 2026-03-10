@@ -62,18 +62,31 @@
           console.log('DEBUG:', msg);
         }
         log('URL: ' + window.location.pathname);
-        fetch('/api/health')
-          .then(r => r.json())
-          .then(data => log('Health: ' + JSON.stringify(data)))
-          .catch(e => log('Health Error: ' + e.message));
+        
+        var healthUrl = window.location.origin + '/api/health';
+        log('Fetching: ' + healthUrl);
+        
+        fetch(healthUrl)
+          .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          })
+          .then(function(data) {
+            log('Health: OK');
+            log('isProd: ' + data.isProduction);
+            log('dist: ' + data.distExists);
+          })
+          .catch(function(e) {
+            log('Health Error: ' + e.message);
+          });
         
         window.addEventListener('load', function() {
           log('Window loaded');
           setTimeout(function() {
             var root = document.getElementById('root');
-            if (root && root.innerText.includes('Loading Application...')) {
+            var isLoading = root && root.innerText.includes('Loading Application...');
+            if (isLoading) {
               log('FAIL: App not rendered');
-              // Check if script tags are present
               var scripts = document.getElementsByTagName('script');
               log('Scripts: ' + scripts.length);
               for(var i=0; i<scripts.length; i++) {

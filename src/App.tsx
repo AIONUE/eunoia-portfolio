@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+console.log('App.tsx: Module loaded');
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { 
   Menu, X, Instagram, Mail, Phone, Plus, Trash2, Settings, LogOut, 

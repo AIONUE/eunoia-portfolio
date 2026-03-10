@@ -124,12 +124,17 @@ async function startServer() {
 
   // Health check
   app.get("/api/health", (req, res) => {
+    const rootDir = path.resolve(__dirname);
+    const distPath = path.resolve(rootDir, "dist");
     res.json({ 
       status: "ok", 
       env: process.env.NODE_ENV, 
       cwd: process.cwd(),
-      distExists: fs.existsSync(path.join(process.cwd(), "dist")),
-      distContents: fs.existsSync(path.join(process.cwd(), "dist")) ? fs.readdirSync(path.join(process.cwd(), "dist")) : []
+      rootDir: rootDir,
+      distPath: distPath,
+      isProduction: isProduction,
+      distExists: fs.existsSync(distPath),
+      distContents: fs.existsSync(distPath) ? fs.readdirSync(distPath) : []
     });
   });
 
@@ -253,8 +258,16 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  const distPath = path.join(process.cwd(), "dist");
+  const rootDir = path.resolve(__dirname);
+  const distPath = path.resolve(rootDir, "dist");
   const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(distPath);
+
+  console.log(`Server configuration:`);
+  console.log(`- rootDir: ${rootDir}`);
+  console.log(`- distPath: ${distPath}`);
+  console.log(`- isProduction: ${isProduction}`);
+  console.log(`- NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`- distExists: ${fs.existsSync(distPath)}`);
 
   if (!isProduction) {
     console.log("Starting in development mode with Vite...");
