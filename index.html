@@ -51,6 +51,48 @@
         <p>Loading Application...</p>
       </div>
     </div>
+    <div id="debug-info" style="position: fixed; bottom: 0; right: 0; background: rgba(0,0,0,0.8); color: lime; font-family: monospace; font-size: 10px; padding: 5px; z-index: 10000; max-width: 300px; word-break: break-all; pointer-events: none;">
+      Debug: Initializing...
+    </div>
+    <script>
+      (function() {
+        var debug = document.getElementById('debug-info');
+        function log(msg) {
+          debug.innerHTML += '<br>' + msg;
+          console.log('DEBUG:', msg);
+        }
+        log('URL: ' + window.location.pathname);
+        
+        fetch('/api/health')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            log('Health: OK');
+            log('isProd: ' + data.isProduction);
+            log('dist: ' + data.distExists);
+          })
+          .catch(function(e) {
+            log('Health Error: ' + e.message);
+          });
+        
+        window.addEventListener('load', function() {
+          log('Window loaded');
+          setTimeout(function() {
+            var root = document.getElementById('root');
+            var isLoading = root && root.innerText.includes('Loading Application...');
+            if (isLoading) {
+              log('FAIL: App not rendered');
+              var scripts = document.getElementsByTagName('script');
+              log('Scripts: ' + scripts.length);
+              for(var i=0; i<scripts.length; i++) {
+                if(scripts[i].src) log('Script['+i+']: ' + scripts[i].src.split('/').pop());
+              }
+            } else {
+              log('SUCCESS: App rendered');
+            }
+          }, 3000);
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

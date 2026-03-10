@@ -260,7 +260,7 @@ async function startServer() {
   // Vite middleware for development
   const rootDir = process.cwd();
   const distPath = path.join(rootDir, "dist");
-  const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(distPath);
+  const isProduction = process.env.NODE_ENV === "production";
 
   console.log(`Server configuration:`);
   console.log(`- rootDir: ${rootDir}`);
@@ -271,12 +271,22 @@ async function startServer() {
 
   if (!isProduction) {
     console.log("Starting in development mode with Vite...");
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+    try {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+      console.log("Vite middleware attached.");
+    } catch (e) {
+      console.error("Failed to start Vite server:", e);
+      // Fallback to static if Vite fails
+      if (fs.existsSync(distPath)) {
+        console.log("Falling back to static serving from dist...");
+        app.use(express.static(distPath));
+      }
+    }
   } else {
     console.log(`Starting in production mode. Serving static files from: ${distPath}`);
     if (fs.existsSync(distPath)) {
