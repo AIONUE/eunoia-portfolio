@@ -124,15 +124,15 @@ async function startServer() {
 
   // Health check
   app.get("/api/health", (req, res) => {
-    const rootDir = path.resolve(__dirname);
-    const distPath = path.resolve(rootDir, "dist");
+    const rootDir = process.cwd();
+    const distPath = path.join(rootDir, "dist");
     res.json({ 
       status: "ok", 
       env: process.env.NODE_ENV, 
       cwd: process.cwd(),
       rootDir: rootDir,
       distPath: distPath,
-      isProduction: isProduction,
+      isProduction: process.env.NODE_ENV === "production" || fs.existsSync(distPath),
       distExists: fs.existsSync(distPath),
       distContents: fs.existsSync(distPath) ? fs.readdirSync(distPath) : []
     });
@@ -258,8 +258,8 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  const rootDir = path.resolve(__dirname);
-  const distPath = path.resolve(rootDir, "dist");
+  const rootDir = process.cwd();
+  const distPath = path.join(rootDir, "dist");
   const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(distPath);
 
   console.log(`Server configuration:`);
