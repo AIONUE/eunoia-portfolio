@@ -1,0 +1,140 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import "tailwindcss";
+
+@theme {
+  --color-brand-blue-start: #78C7FE;
+  --color-brand-blue-end: #AECCFE;
+  --color-ink: #1A1A1A;
+  --color-paper: #FFFFFF;
+  --font-display: "Pretendard", sans-serif;
+  --font-accent: "Pretendard", sans-serif;
+  --font-sans: "Pretendard", ui-sans-serif, system-ui, sans-serif;
+  
+  --transition-slow: 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-medium: 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bg-brand-gradient {
+  background: linear-gradient(135deg, #78C7FE 0%, #AECCFE 100%);
+}
+
+.text-brand-gradient {
+  background: linear-gradient(135deg, #78C7FE 0%, #AECCFE 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-highlighter {
+  position: relative;
+  z-index: 1;
+}
+
+.nav-highlighter::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+  height: 60%;
+  background: linear-gradient(135deg, rgba(120, 199, 254, 0.5) 0%, rgba(174, 204, 254, 0.5) 100%);
+  z-index: -1;
+  transform: skewX(-10deg) scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-highlighter:hover::before,
+.nav-highlighter.active::before {
+  transform: skewX(-10deg) scaleX(1);
+}
+
+/* Base Styles */
+:root {
+  cursor: none; /* Hide default cursor for custom cursor */
+}
+
+@media (max-width: 768px) {
+  :root {
+    cursor: auto;
+  }
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Custom Cursor */
+.custom-cursor {
+  width: 8px;
+  height: 8px;
+  background: var(--color-ink);
+  border-radius: 50%;
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transition: transform 0.1s ease-out;
+}
+
+.custom-cursor-ring {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-ink);
+  border-radius: 50%;
+  position: fixed;
+  pointer-events: none;
+  z-index: 9998;
+  transition: transform 0.15s ease-out, width 0.3s, height 0.3s, background 0.3s;
+}
+
+/* Interactive Elements */
+.hover-scale {
+  transition: transform var(--transition-medium);
+}
+
+.hover-scale:hover {
+  transform: scale(1.03);
+}
+
+
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Typography Utilities */
+.text-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.text-accent {
+  font-family: var(--font-accent);
+  text-transform: uppercase;
+}
+
+/* Grid Layouts */
+.saworl-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  background-color: #eee; /* Divider color */
+}
+
+@media (min-width: 768px) {
+  .saworl-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.saworl-grid > * {
+  background-color: var(--color-paper);
+}
