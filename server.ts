@@ -16,100 +16,81 @@ console.log("NODE_ENV:", process.env.NODE_ENV);
 console.log("__dirname:", __dirname);
 console.log("Root directory contents:", fs.readdirSync(__dirname));
 
-const dbPath = path.resolve(__dirname, "portfolio.db");
-console.log(`Using database at: ${dbPath}`);
-const db = new Database(dbPath);
+let db: any;
+try {
+  const dbPath = path.resolve(__dirname, "portfolio.db");
+  console.log(`Using database at: ${dbPath}`);
+  db = new Database(dbPath);
 
-// Initialize database
-db.exec(`
-  CREATE TABLE IF NOT EXISTS work (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    category TEXT,
-    imageUrl TEXT NOT NULL,
-    content TEXT,
-    displayOrder INTEGER DEFAULT 0
-  );
+  // Initialize database
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS work (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      category TEXT,
+      imageUrl TEXT NOT NULL,
+      content TEXT,
+      displayOrder INTEGER DEFAULT 0
+    );
 
-  CREATE TABLE IF NOT EXISTS work_images (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    workId INTEGER NOT NULL,
-    imageUrl TEXT NOT NULL,
-    displayOrder INTEGER DEFAULT 0,
-    FOREIGN KEY (workId) REFERENCES work(id) ON DELETE CASCADE
-  );
+    CREATE TABLE IF NOT EXISTS work_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      workId INTEGER NOT NULL,
+      imageUrl TEXT NOT NULL,
+      displayOrder INTEGER DEFAULT 0,
+      FOREIGN KEY (workId) REFERENCES work(id) ON DELETE CASCADE
+    );
 
-  CREATE TABLE IF NOT EXISTS about (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    slogan TEXT,
-    description TEXT,
-    skills TEXT,
-    email TEXT,
-    phone TEXT,
-    instagram TEXT,
-    imageUrl TEXT
-  );
+    CREATE TABLE IF NOT EXISTS about (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      slogan TEXT,
+      description TEXT,
+      skills TEXT,
+      email TEXT,
+      phone TEXT,
+      instagram TEXT,
+      imageUrl TEXT
+    );
 
-  CREATE TABLE IF NOT EXISTS blog (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    imageUrl TEXT,
-    date TEXT NOT NULL,
-    displayOrder INTEGER DEFAULT 0
-  );
+    CREATE TABLE IF NOT EXISTS blog (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      imageUrl TEXT,
+      date TEXT NOT NULL,
+      displayOrder INTEGER DEFAULT 0
+    );
 
-  CREATE TABLE IF NOT EXISTS graduation_project (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    week INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    imageUrl TEXT,
-    date TEXT NOT NULL
-  );
-`);
+    CREATE TABLE IF NOT EXISTS graduation_project (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      imageUrl TEXT,
+      date TEXT NOT NULL
+    );
+  `);
 
-// Seed initial data if empty
-const workCount = db.prepare("SELECT COUNT(*) as count FROM work").get() as { count: number };
-console.log(`Current work count: ${workCount.count}`);
-if (workCount.count === 0) {
-  console.log("Seeding work data...");
-  const insertWork = db.prepare("INSERT INTO work (title, category, imageUrl, displayOrder) VALUES (?, ?, ?, ?)");
-  insertWork.run("Shinhan Investment Corp Project", "Brand Identity", "https://picsum.photos/seed/shinhan/800/1000", 1);
-  insertWork.run("AmorePacific Industry-Academic", "UI/UX Design", "https://picsum.photos/seed/amore/800/1000", 2);
-  insertWork.run("IT Club Award Winning", "Product Design", "https://picsum.photos/seed/award/800/1000", 3);
-  insertWork.run("Visual Identity System", "Graphic Design", "https://picsum.photos/seed/visual/800/1000", 4);
-  insertWork.run("Mobile App Concept", "App Design", "https://picsum.photos/seed/app/800/1000", 5);
-  insertWork.run("Editorial Design Collection", "Print", "https://picsum.photos/seed/print/800/1000", 6);
-  insertWork.run("Brand Packaging Design", "Packaging", "https://picsum.photos/seed/pack/800/1000", 7);
-  insertWork.run("Web Interface Design", "Web Design", "https://picsum.photos/seed/web/800/1000", 8);
-  insertWork.run("Typography Poster Series", "Poster", "https://picsum.photos/seed/poster/800/1000", 9);
-}
+  // Seed initial data if empty
+  const workCount = db.prepare("SELECT COUNT(*) as count FROM work").get() as { count: number };
+  if (workCount.count === 0) {
+    const insertWork = db.prepare("INSERT INTO work (title, category, imageUrl, displayOrder) VALUES (?, ?, ?, ?)");
+    insertWork.run("Shinhan Investment Corp Project", "Brand Identity", "https://picsum.photos/seed/shinhan/800/1000", 1);
+    insertWork.run("AmorePacific Industry-Academic", "UI/UX Design", "https://picsum.photos/seed/amore/800/1000", 2);
+  }
 
-const aboutCount = db.prepare("SELECT COUNT(*) as count FROM about").get() as { count: number };
-console.log(`Current about count: ${aboutCount.count}`);
-if (aboutCount.count === 0) {
-  console.log("Seeding about data...");
-  db.prepare(`
-    INSERT INTO about (id, slogan, description, skills, email, phone, instagram, imageUrl)
-    VALUES (1, 'Communication through empathy', 
-    '숙명여자대학교 시각영상디자인과 재학 중. 다양한 기업과의 산학 프로젝트를 통해 실무 감각을 익히고 있습니다.', 
-    'Figma, Adobe Creative Suite, Midjourney, Runway', 
-    'wldms2418@sookmyung.ac.kr', '010-4038-1134', '@2.eunoia', 'https://picsum.photos/seed/jieun/800/1000')
-  `).run();
-}
-
-const blogCount = db.prepare("SELECT COUNT(*) as count FROM blog").get() as { count: number };
-if (blogCount.count === 0) {
-  const insertBlog = db.prepare("INSERT INTO blog (title, content, imageUrl, date) VALUES (?, ?, ?, ?)");
-  insertBlog.run("First Blog Post", "Welcome to my new portfolio blog. I will be sharing my design journey here.", "https://picsum.photos/seed/blog1/1200/800", new Date().toLocaleDateString());
-}
-
-const gradCount = db.prepare("SELECT COUNT(*) as count FROM graduation_project").get() as { count: number };
-if (gradCount.count === 0) {
-  const insertGrad = db.prepare("INSERT INTO graduation_project (week, title, content, imageUrl, date) VALUES (?, ?, ?, ?, ?)");
-  insertGrad.run(1, "Week 1: Project Kickoff", "Started the graduation project with initial research and brainstorming.", "https://picsum.photos/seed/grad1/1200/800", new Date().toLocaleDateString());
-  insertGrad.run(2, "Week 2: Concept Development", "Developed three core concepts for the project and received feedback.", "https://picsum.photos/seed/grad2/1200/800", new Date().toLocaleDateString());
+  const aboutCount = db.prepare("SELECT COUNT(*) as count FROM about").get() as { count: number };
+  if (aboutCount.count === 0) {
+    db.prepare(`
+      INSERT INTO about (id, slogan, description, skills, email, phone, instagram, imageUrl)
+      VALUES (1, 'Communication through empathy', 
+      '숙명여자대학교 시각영상디자인과 재학 중.', 
+      'Figma, Adobe Creative Suite', 
+      'wldms2418@sookmyung.ac.kr', '010-4038-1134', '@2.eunoia', 'https://picsum.photos/seed/jieun/800/1000')
+    `).run();
+  }
+} catch (e) {
+  console.error("Database initialization failed:", e);
 }
 
 async function startServer() {
@@ -276,6 +257,7 @@ async function startServer() {
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa",
+        root: process.cwd(),
       });
       app.use(vite.middlewares);
       console.log("Vite middleware attached.");

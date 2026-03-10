@@ -64,7 +64,10 @@
         log('URL: ' + window.location.pathname);
         
         fetch('/api/health')
-          .then(function(r) { return r.json(); })
+          .then(function(r) { 
+            if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 30)); });
+            return r.json(); 
+          })
           .then(function(data) {
             log('Health: OK');
             log('isProd: ' + data.isProduction);
