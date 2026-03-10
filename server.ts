@@ -4,9 +4,17 @@ import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import fs from "fs";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+console.log("Starting server...");
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("__dirname:", __dirname);
+console.log("Root directory contents:", fs.readdirSync(__dirname));
 
 const dbPath = path.resolve(__dirname, "portfolio.db");
 console.log(`Using database at: ${dbPath}`);
@@ -107,6 +115,17 @@ if (gradCount.count === 0) {
 async function startServer() {
   const app = express();
   app.use(express.json());
+
+  // Request logging
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+  });
+
+  // Health check
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", env: process.env.NODE_ENV, distExists: fs.existsSync(path.resolve(__dirname, "dist")) });
+  });
 
   // Configure multer for file uploads
   const uploadsDir = path.join(__dirname, "uploads");
@@ -228,7 +247,11 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  const distPath = path.resolve(__dirname, "dist");
+  const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(distPath);
+
+  if (!isProduction) {
+    console.log("Starting in development mode with Vite...");
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -236,8 +259,12 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(__dirname, "dist");
-    console.log(`Serving static files from: ${distPath}`);
+    console.log(`Starting in production mode. Serving static files from: ${distPath}`);
+    if (fs.existsSync(distPath)) {
+      console.log("Dist directory contents:", fs.readdirSync(distPath));
+    } else {
+      console.error("Dist directory does not exist!");
+    }
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       const indexPath = path.resolve(distPath, "index.html");

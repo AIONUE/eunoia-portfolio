@@ -174,6 +174,7 @@ const ParallaxSection = ({ children, speed = 0.1, className = "" }: { children: 
 };
 
 export default function App() {
+  console.log('App: Rendering component...');
   const [view, setView] = useState<View>('WORK');
   const [works, setWorks] = useState<Work[]>([]);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
