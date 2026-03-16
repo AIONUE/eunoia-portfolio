@@ -1,5 +1,5 @@
 import express from "express";
-import Database from "better-sqlite3";
+// import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
@@ -11,85 +11,37 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let db: any;
-try {
-  const dbPath = path.resolve(__dirname, "portfolio.db");
-  db = new Database(dbPath);
+// File logging for diagnosis
+const logFile = path.join(process.cwd(), "server.log");
+const log = (msg: string) => {
+  const entry = `${new Date().toISOString()} - ${msg}\n`;
+  fs.appendFileSync(logFile, entry);
+  console.log(msg);
+};
 
-  // Initialize database
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS work (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      category TEXT,
-      imageUrl TEXT NOT NULL,
-      content TEXT,
-      displayOrder INTEGER DEFAULT 0
-    );
+log("Starting server script execution...");
 
-    CREATE TABLE IF NOT EXISTS work_images (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      workId INTEGER NOT NULL,
-      imageUrl TEXT NOT NULL,
-      displayOrder INTEGER DEFAULT 0,
-      FOREIGN KEY (workId) REFERENCES work(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS about (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      slogan TEXT,
-      description TEXT,
-      skills TEXT,
-      email TEXT,
-      phone TEXT,
-      instagram TEXT,
-      imageUrl TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS blog (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
-      imageUrl TEXT,
-      date TEXT NOT NULL,
-      displayOrder INTEGER DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS graduation_project (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      week INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
-      imageUrl TEXT,
-      date TEXT NOT NULL
-    );
-  `);
-
-  // Seed initial data if empty
-  const workCount = db.prepare("SELECT COUNT(*) as count FROM work").get() as { count: number };
-  if (workCount.count === 0) {
-    const insertWork = db.prepare("INSERT INTO work (title, category, imageUrl, displayOrder) VALUES (?, ?, ?, ?)");
-    insertWork.run("Shinhan Investment Corp Project", "Brand Identity", "https://picsum.photos/seed/shinhan/800/1000", 1);
-    insertWork.run("AmorePacific Industry-Academic", "UI/UX Design", "https://picsum.photos/seed/amore/800/1000", 2);
-  }
-
-  const aboutCount = db.prepare("SELECT COUNT(*) as count FROM about").get() as { count: number };
-  if (aboutCount.count === 0) {
-    db.prepare(`
-      INSERT INTO about (id, slogan, description, skills, email, phone, instagram, imageUrl)
-      VALUES (1, 'Communication through empathy', 
-      '숙명여자대학교 시각영상디자인과 재학 중.', 
-      'Figma, Adobe Creative Suite', 
-      'wldms2418@sookmyung.ac.kr', '010-4038-1134', '@2.eunoia', 'https://picsum.photos/seed/jieun/800/1000')
-    `).run();
-  }
-} catch (e) {
-  console.error("Database initialization failed:", e);
-}
+// Mock DB for testing
+let db: any = {
+  prepare: () => ({ 
+    get: () => ({ count: 1 }), 
+    run: () => ({ lastInsertRowid: 1 }), 
+    all: () => [] 
+  }),
+  exec: () => {}
+};
 
 async function startServer() {
   const app = express();
   app.use(express.json());
+
+  // Request logging for diagnosis
+  app.use((req, res, next) => {
+    if (!req.url.startsWith('/api/')) {
+      log(`${req.method} ${req.url}`);
+    }
+    next();
+  });
 
   // Health check
   app.get("/api/health", (req, res) => {
@@ -232,6 +184,7 @@ async function startServer() {
   console.log(`- distExists: ${fs.existsSync(distPath)}`);
 
   if (!isProduction) {
+    console.log("Starting in development mode with Vite...");
     try {
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
@@ -239,10 +192,43 @@ async function startServer() {
           middlewareMode: true,
           hmr: false
         },
-        appType: "spa",
-        root: process.cwd(),
+        appType: "custom", // Changed to custom to handle HTML manually
+        root: rootDir,
       });
+      
+      // Use vite's connect instance as middleware
       app.use(vite.middlewares);
+      console.log("Vite middleware attached.");
+
+      // Handle index.html with Vite transformation
+      app.get("*", async (req, res, next) => {
+        const url = req.originalUrl;
+        
+        // Skip API routes
+        if (url.startsWith("/api/")) return next();
+        
+        // Skip file requests that should have been handled by vite.middlewares
+        // (e.g. .tsx, .ts, .css, .svg etc)
+        if (url.includes('.') && !url.endsWith('.html')) {
+          return next();
+        }
+
+        try {
+          const indexPath = path.resolve(rootDir, "index.html");
+          if (!fs.existsSync(indexPath)) {
+            console.error(`index.html not found at ${indexPath}`);
+            return res.status(404).send("index.html not found");
+          }
+          
+          let template = fs.readFileSync(indexPath, "utf-8");
+          template = await vite.transformIndexHtml(url, template);
+          res.status(200).set({ "Content-Type": "text/html" }).end(template);
+        } catch (e) {
+          vite.ssrFixStacktrace(e as Error);
+          console.error("Vite transform error:", e);
+          next(e);
+        }
+      });
     } catch (e) {
       console.error("Failed to start Vite server:", e);
     }
@@ -288,6 +274,7 @@ async function startServer() {
 
   const PORT = 3000;
   app.listen(PORT, "0.0.0.0", () => {
+    log(`Server running on http://localhost:${PORT}`);
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
