@@ -11,15 +11,9 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log("Starting server...");
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("__dirname:", __dirname);
-console.log("Root directory contents:", fs.readdirSync(__dirname));
-
 let db: any;
 try {
   const dbPath = path.resolve(__dirname, "portfolio.db");
-  console.log(`Using database at: ${dbPath}`);
   db = new Database(dbPath);
 
   // Initialize database
@@ -97,25 +91,12 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // Request logging
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-  });
-
   // Health check
   app.get("/api/health", (req, res) => {
-    const rootDir = process.cwd();
-    const distPath = path.join(rootDir, "dist");
     res.json({ 
       status: "ok", 
-      env: process.env.NODE_ENV, 
-      cwd: process.cwd(),
-      rootDir: rootDir,
-      distPath: distPath,
-      isProduction: process.env.NODE_ENV === "production" || fs.existsSync(distPath),
-      distExists: fs.existsSync(distPath),
-      distContents: fs.existsSync(distPath) ? fs.readdirSync(distPath) : []
+      env: process.env.NODE_ENV,
+      isProduction: process.env.NODE_ENV === "production"
     });
   });
 
@@ -251,23 +232,19 @@ async function startServer() {
   console.log(`- distExists: ${fs.existsSync(distPath)}`);
 
   if (!isProduction) {
-    console.log("Starting in development mode with Vite...");
     try {
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
-        server: { middlewareMode: true },
+        server: { 
+          middlewareMode: true,
+          hmr: false
+        },
         appType: "spa",
         root: process.cwd(),
       });
       app.use(vite.middlewares);
-      console.log("Vite middleware attached.");
     } catch (e) {
       console.error("Failed to start Vite server:", e);
-      // Fallback to static if Vite fails
-      if (fs.existsSync(distPath)) {
-        console.log("Falling back to static serving from dist...");
-        app.use(express.static(distPath));
-      }
     }
   } else {
     console.log(`Starting in production mode. Serving static files from: ${distPath}`);
