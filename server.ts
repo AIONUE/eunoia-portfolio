@@ -1,5 +1,5 @@
 import express from "express";
-// import Database from "better-sqlite3";
+import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
@@ -11,49 +11,25 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// File logging for diagnosis
-const logFile = path.join(process.cwd(), "server.log");
-const log = (msg: string) => {
-  const entry = `${new Date().toISOString()} - ${msg}\n`;
-  fs.appendFileSync(logFile, entry);
-  console.log(msg);
-};
+// Render.com uses process.env.PORT
+const PORT = process.env.PORT || 3000;
 
-log("Starting server script execution...");
+// Supabase Configuration
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
 
-// Mock DB for testing
-let db: any = {
-  prepare: () => ({ 
-    get: () => ({ count: 1 }), 
-    run: () => ({ lastInsertRowid: 1 }), 
-    all: () => [] 
-  }),
-  exec: () => {}
-};
+if (!supabaseUrl || !supabaseKey) {
+  console.warn("WARNING: SUPABASE_URL or SUPABASE_ANON_KEY is missing. Database features will not work.");
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // Request logging for diagnosis
-  app.use((req, res, next) => {
-    if (!req.url.startsWith('/api/')) {
-      log(`${req.method} ${req.url}`);
-    }
-    next();
-  });
-
-  // Health check
-  app.get("/api/health", (req, res) => {
-    res.json({ 
-      status: "ok", 
-      env: process.env.NODE_ENV,
-      isProduction: process.env.NODE_ENV === "production"
-    });
-  });
-
   // Configure multer for file uploads
-  const uploadsDir = path.join(__dirname, "uploads");
+  const uploadsDir = path.join(process.cwd(), "uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
@@ -70,121 +46,194 @@ async function startServer() {
 
   const upload = multer({ storage });
 
-  // Serve uploads statically
-  app.use("/uploads", express.static(uploadsDir));
-
   // API Routes
   app.post("/api/upload", upload.single("file"), (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-    const fileUrl = `/uploads/${req.file.filename}`;
-    res.json({ url: fileUrl });
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ url });
   });
 
-  app.get("/api/work", (req, res) => {
-    const works = db.prepare("SELECT * FROM work ORDER BY displayOrder ASC").all();
-    res.json(works);
+  app.use("/uploads", express.static(uploadsDir));
+
+  // Work Routes
+  app.get("/api/work", async (req, res) => {
+    const { data, error } = await supabase
+      .from("work")
+      .select("*")
+      .order("displayOrder", { ascending: true });
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
   });
 
-  app.get("/api/work/:id", (req, res) => {
-    const work = db.prepare("SELECT * FROM work WHERE id = ?").get(req.params.id);
-    if (!work) return res.status(404).json({ error: "Work not found" });
-    const images = db.prepare("SELECT * FROM work_images WHERE workId = ? ORDER BY displayOrder ASC").all(req.params.id);
+  app.get("/api/work/:id", async (req, res) => {
+    const { data: work, error: workError } = await supabase
+      .from("work")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    
+    if (workError) return res.status(500).json({ error: workError.message });
+    
+    const { data: images, error: imagesError } = await supabase
+      .from("work_images")
+      .select("*")
+      .eq("workId", req.params.id)
+      .order("displayOrder", { ascending: true });
+    
+    if (imagesError) return res.status(500).json({ error: imagesError.message });
+    
     res.json({ ...work, images });
   });
 
-  app.post("/api/work/:id", (req, res) => {
-    const { title, category, imageUrl, content, displayOrder } = req.body;
-    db.prepare(`
-      UPDATE work SET title = ?, category = ?, imageUrl = ?, content = ?, displayOrder = ?
-      WHERE id = ?
-    `).run(title, category, imageUrl, content, displayOrder, req.params.id);
-    res.json({ success: true });
-  });
-
-  app.post("/api/work/:id/images", (req, res) => {
-    const { imageUrl, displayOrder } = req.body;
-    const info = db.prepare("INSERT INTO work_images (workId, imageUrl, displayOrder) VALUES (?, ?, ?)").run(req.params.id, imageUrl, displayOrder || 0);
-    res.json({ id: info.lastInsertRowid });
-  });
-
-  app.delete("/api/work/images/:id", (req, res) => {
-    db.prepare("DELETE FROM work_images WHERE id = ?").run(req.params.id);
-    res.json({ success: true });
-  });
-
-  app.post("/api/work", (req, res) => {
+  app.post("/api/work", async (req, res) => {
     const { title, category, imageUrl, displayOrder } = req.body;
-    const info = db.prepare("INSERT INTO work (title, category, imageUrl, displayOrder) VALUES (?, ?, ?, ?)").run(title, category, imageUrl, displayOrder);
-    res.json({ id: info.lastInsertRowid });
+    const { data, error } = await supabase
+      .from("work")
+      .insert([{ title, category, imageUrl, displayOrder }])
+      .select()
+      .single();
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
   });
 
-  app.delete("/api/work/:id", (req, res) => {
-    db.prepare("DELETE FROM work WHERE id = ?").run(req.params.id);
+  app.post("/api/work/:id", async (req, res) => {
+    const { title, category, imageUrl, content, displayOrder } = req.body;
+    const { error } = await supabase
+      .from("work")
+      .update({ title, category, imageUrl, content, displayOrder })
+      .eq("id", req.params.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
   });
 
-  app.get("/api/about", (req, res) => {
-    const about = db.prepare("SELECT * FROM about WHERE id = 1").get();
-    res.json(about);
+  app.delete("/api/work/:id", async (req, res) => {
+    const { error } = await supabase
+      .from("work")
+      .delete()
+      .eq("id", req.params.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
   });
 
-  app.post("/api/about", (req, res) => {
+  app.post("/api/work/:id/images", async (req, res) => {
+    const { imageUrl, displayOrder } = req.body;
+    const { data, error } = await supabase
+      .from("work_images")
+      .insert([{ workId: req.params.id, imageUrl, displayOrder }])
+      .select()
+      .single();
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  });
+
+  app.delete("/api/work/images/:id", async (req, res) => {
+    const { error } = await supabase
+      .from("work_images")
+      .delete()
+      .eq("id", req.params.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+  });
+
+  // About Routes
+  app.get("/api/about", async (req, res) => {
+    const { data, error } = await supabase
+      .from("about")
+      .select("*")
+      .eq("id", 1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') return res.status(500).json({ error: error.message });
+    res.json(data || {});
+  });
+
+  app.post("/api/about", async (req, res) => {
     const { slogan, description, skills, email, phone, instagram, imageUrl } = req.body;
-    db.prepare(`
-      UPDATE about SET slogan = ?, description = ?, skills = ?, email = ?, phone = ?, instagram = ?, imageUrl = ?
-      WHERE id = 1
-    `).run(slogan, description, skills, email, phone, instagram, imageUrl);
+    const { error } = await supabase
+      .from("about")
+      .upsert({ id: 1, slogan, description, skills, email, phone, instagram, imageUrl });
+    
+    if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
   });
 
-  app.get("/api/blog", (req, res) => {
-    const posts = db.prepare("SELECT * FROM blog ORDER BY id DESC").all();
-    res.json(posts);
+  // Blog Routes
+  app.get("/api/blog", async (req, res) => {
+    const { data, error } = await supabase
+      .from("blog")
+      .select("*")
+      .order("id", { ascending: false });
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
   });
 
-  app.post("/api/blog", (req, res) => {
+  app.post("/api/blog", async (req, res) => {
     const { title, content, imageUrl, date } = req.body;
-    const info = db.prepare("INSERT INTO blog (title, content, imageUrl, date) VALUES (?, ?, ?, ?)").run(title, content, imageUrl, date || new Date().toLocaleDateString());
-    res.json({ id: info.lastInsertRowid });
+    const { data, error } = await supabase
+      .from("blog")
+      .insert([{ title, content, imageUrl, date: date || new Date().toLocaleDateString() }])
+      .select()
+      .single();
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
   });
 
-  app.delete("/api/blog/:id", (req, res) => {
-    db.prepare("DELETE FROM blog WHERE id = ?").run(req.params.id);
+  app.delete("/api/blog/:id", async (req, res) => {
+    const { error } = await supabase
+      .from("blog")
+      .delete()
+      .eq("id", req.params.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
   });
 
-  app.get("/api/graduation", (req, res) => {
-    const posts = db.prepare("SELECT * FROM graduation_project ORDER BY week DESC").all();
-    res.json(posts);
+  // Graduation Routes
+  app.get("/api/graduation", async (req, res) => {
+    const { data, error } = await supabase
+      .from("graduation_project")
+      .select("*")
+      .order("week", { ascending: true });
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
   });
 
-  app.post("/api/graduation", (req, res) => {
+  app.post("/api/graduation", async (req, res) => {
     const { week, title, content, imageUrl, date } = req.body;
-    const info = db.prepare("INSERT INTO graduation_project (week, title, content, imageUrl, date) VALUES (?, ?, ?, ?, ?)").run(week, title, content, imageUrl, date || new Date().toLocaleDateString());
-    res.json({ id: info.lastInsertRowid });
+    const { data, error } = await supabase
+      .from("graduation_project")
+      .insert([{ week, title, content, imageUrl, date: date || new Date().toLocaleDateString() }])
+      .select()
+      .single();
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
   });
 
-  app.delete("/api/graduation/:id", (req, res) => {
-    db.prepare("DELETE FROM graduation_project WHERE id = ?").run(req.params.id);
+  app.delete("/api/graduation/:id", async (req, res) => {
+    const { error } = await supabase
+      .from("graduation_project")
+      .delete()
+      .eq("id", req.params.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
   });
 
   // Vite middleware for development
   const rootDir = process.cwd();
   const distPath = path.join(rootDir, "dist");
-  const isProduction = process.env.NODE_ENV === "production";
 
-  console.log(`Server configuration:`);
-  console.log(`- rootDir: ${rootDir}`);
-  console.log(`- distPath: ${distPath}`);
-  console.log(`- isProduction: ${isProduction}`);
-  console.log(`- NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`- distExists: ${fs.existsSync(distPath)}`);
-
-  if (!isProduction) {
-    console.log("Starting in development mode with Vite...");
+  if (process.env.NODE_ENV !== "production") {
     try {
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
@@ -192,40 +241,26 @@ async function startServer() {
           middlewareMode: true,
           hmr: false
         },
-        appType: "custom", // Changed to custom to handle HTML manually
+        appType: "custom",
         root: rootDir,
       });
       
-      // Use vite's connect instance as middleware
       app.use(vite.middlewares);
-      console.log("Vite middleware attached.");
 
-      // Handle index.html with Vite transformation
       app.get("*", async (req, res, next) => {
         const url = req.originalUrl;
-        
-        // Skip API routes
         if (url.startsWith("/api/")) return next();
-        
-        // Skip file requests that should have been handled by vite.middlewares
-        // (e.g. .tsx, .ts, .css, .svg etc)
-        if (url.includes('.') && !url.endsWith('.html')) {
-          return next();
-        }
+        if (url.includes('.') && !url.endsWith('.html')) return next();
 
         try {
           const indexPath = path.resolve(rootDir, "index.html");
-          if (!fs.existsSync(indexPath)) {
-            console.error(`index.html not found at ${indexPath}`);
-            return res.status(404).send("index.html not found");
-          }
+          if (!fs.existsSync(indexPath)) return res.status(404).send("index.html not found");
           
           let template = fs.readFileSync(indexPath, "utf-8");
           template = await vite.transformIndexHtml(url, template);
           res.status(200).set({ "Content-Type": "text/html" }).end(template);
         } catch (e) {
           vite.ssrFixStacktrace(e as Error);
-          console.error("Vite transform error:", e);
           next(e);
         }
       });
@@ -233,49 +268,23 @@ async function startServer() {
       console.error("Failed to start Vite server:", e);
     }
   } else {
-    console.log(`Starting in production mode. Serving static files from: ${distPath}`);
-    if (fs.existsSync(distPath)) {
-      console.log("Dist directory contents:", fs.readdirSync(distPath));
-      if (fs.existsSync(path.join(distPath, "assets"))) {
-        console.log("Assets directory contents:", fs.readdirSync(path.join(distPath, "assets")));
-      }
-    } else {
-      console.error("Dist directory does not exist!");
-    }
-
-    // Explicitly serve assets with correct MIME types
-    app.use("/assets", express.static(path.join(distPath, "assets"), {
-      setHeaders: (res, filePath) => {
-        if (filePath.endsWith(".js")) {
-          res.setHeader("Content-Type", "application/javascript");
-        } else if (filePath.endsWith(".css")) {
-          res.setHeader("Content-Type", "text/css");
-        }
-      }
-    }));
-
     app.use(express.static(distPath));
     
     app.get("*", (req, res) => {
-      // If it's an API request that reached here, it's a 404
       if (req.url.startsWith("/api/")) {
         return res.status(404).json({ error: "API route not found" });
       }
-
       const indexPath = path.resolve(distPath, "index.html");
       if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
       } else {
-        console.error(`Index file not found at: ${indexPath}`);
         res.status(404).send("Frontend build not found. Please run 'npm run build'.");
       }
     });
   }
 
-  const PORT = 3000;
   app.listen(PORT, "0.0.0.0", () => {
-    log(`Server running on http://localhost:${PORT}`);
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
 }
 
