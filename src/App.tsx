@@ -198,6 +198,7 @@ export default function App() {
   const [newGraduation, setNewGraduation] = useState({ week: 1, title: '', content: '', imageUrl: '' });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -216,8 +217,15 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
-      await Promise.all([fetchWorks(), fetchAbout(), fetchBlogs(), fetchGraduationPosts()]);
-      setIsLoading(false);
+      setError(null);
+      try {
+        await Promise.all([fetchWorks(), fetchAbout(), fetchBlogs(), fetchGraduationPosts()]);
+      } catch (err) {
+        console.error('Initialization error:', err);
+        setError('Failed to load data. Please check your connection and Supabase configuration.');
+      } finally {
+        setIsLoading(false);
+      }
     };
     init();
   }, []);
@@ -227,9 +235,10 @@ export default function App() {
       const res = await fetch('/api/work');
       const data = await res.json();
       console.log('Fetched works:', data);
-      setWorks(data);
+      setWorks(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching works:', err);
+      setWorks([]);
     }
   };
 
@@ -237,9 +246,10 @@ export default function App() {
     try {
       const res = await fetch('/api/blog');
       const data = await res.json();
-      setBlogs(data);
+      setBlogs(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching blogs:', err);
+      setBlogs([]);
     }
   };
 
@@ -247,9 +257,10 @@ export default function App() {
     try {
       const res = await fetch('/api/graduation');
       const data = await res.json();
-      setGraduationPosts(data);
+      setGraduationPosts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching graduation posts:', err);
+      setGraduationPosts([]);
     }
   };
 
@@ -258,9 +269,10 @@ export default function App() {
       const res = await fetch('/api/about');
       const data = await res.json();
       console.log('Fetched about:', data);
-      setAbout(data);
+      setAbout(data && typeof data === 'object' ? data : null);
     } catch (err) {
       console.error('Error fetching about:', err);
+      setAbout(null);
     }
   };
 
@@ -1176,20 +1188,20 @@ export default function App() {
                   </h2>
                   <div className="flex flex-col space-y-6 text-xl md:text-3xl font-normal">
                     <a 
-                      href={`mailto:${about.email}`} 
+                      href={`mailto:${about?.email || ''}`} 
                       onMouseEnter={() => setCursorText('MAIL')}
                       onMouseLeave={() => setCursorText(undefined)}
                       className="hover:text-brand-green transition-colors flex items-center justify-center gap-6 group"
                     >
-                      {about.email} <ExternalLink size={24} className="opacity-0 group-hover:opacity-100 transition-all" />
+                      {about?.email || 'No Email'} <ExternalLink size={24} className="opacity-0 group-hover:opacity-100 transition-all" />
                     </a>
                     <a 
-                      href={`tel:${about.phone}`} 
+                      href={`tel:${about?.phone || ''}`} 
                       onMouseEnter={() => setCursorText('CALL')}
                       onMouseLeave={() => setCursorText(undefined)}
                       className="hover:text-brand-green transition-colors"
                     >
-                      {about.phone}
+                      {about?.phone || 'No Phone'}
                     </a>
                     <div className="flex justify-center gap-12 pt-12">
                       <a href="https://instagram.com/2.eunoia" target="_blank" rel="noreferrer" className="text-sm uppercase tracking-[0.4em] hover:text-brand-green transition-colors">Instagram</a>

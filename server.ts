@@ -12,17 +12,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Render.com uses process.env.PORT
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || "3000", 10);
 
 // Supabase Configuration
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
 
-if (!supabaseUrl || !supabaseKey) {
+let supabase: any = null;
+
+if (supabaseUrl && supabaseKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseKey);
+    console.log("Supabase client initialized successfully.");
+  } catch (err) {
+    console.error("Failed to initialize Supabase client:", err);
+  }
+} else {
   console.warn("WARNING: SUPABASE_URL or SUPABASE_ANON_KEY is missing. Database features will not work.");
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function startServer() {
   const app = express();
@@ -57,16 +64,18 @@ async function startServer() {
 
   // Work Routes
   app.get("/api/work", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { data, error } = await supabase
       .from("work")
       .select("*")
       .order("displayOrder", { ascending: true });
     
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    res.json(data || []);
   });
 
   app.get("/api/work/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { data: work, error: workError } = await supabase
       .from("work")
       .select("*")
@@ -83,10 +92,11 @@ async function startServer() {
     
     if (imagesError) return res.status(500).json({ error: imagesError.message });
     
-    res.json({ ...work, images });
+    res.json({ ...work, images: images || [] });
   });
 
   app.post("/api/work", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { title, category, imageUrl, displayOrder } = req.body;
     const { data, error } = await supabase
       .from("work")
@@ -99,6 +109,7 @@ async function startServer() {
   });
 
   app.post("/api/work/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { title, category, imageUrl, content, displayOrder } = req.body;
     const { error } = await supabase
       .from("work")
@@ -110,6 +121,7 @@ async function startServer() {
   });
 
   app.delete("/api/work/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { error } = await supabase
       .from("work")
       .delete()
@@ -120,6 +132,7 @@ async function startServer() {
   });
 
   app.post("/api/work/:id/images", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { imageUrl, displayOrder } = req.body;
     const { data, error } = await supabase
       .from("work_images")
@@ -132,6 +145,7 @@ async function startServer() {
   });
 
   app.delete("/api/work/images/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { error } = await supabase
       .from("work_images")
       .delete()
@@ -143,6 +157,7 @@ async function startServer() {
 
   // About Routes
   app.get("/api/about", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { data, error } = await supabase
       .from("about")
       .select("*")
@@ -154,6 +169,7 @@ async function startServer() {
   });
 
   app.post("/api/about", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { slogan, description, skills, email, phone, instagram, imageUrl } = req.body;
     const { error } = await supabase
       .from("about")
@@ -165,6 +181,7 @@ async function startServer() {
 
   // Blog Routes
   app.get("/api/blog", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { data, error } = await supabase
       .from("blog")
       .select("*")
@@ -175,6 +192,7 @@ async function startServer() {
   });
 
   app.post("/api/blog", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { title, content, imageUrl, date } = req.body;
     const { data, error } = await supabase
       .from("blog")
@@ -187,6 +205,7 @@ async function startServer() {
   });
 
   app.delete("/api/blog/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { error } = await supabase
       .from("blog")
       .delete()
@@ -198,6 +217,7 @@ async function startServer() {
 
   // Graduation Routes
   app.get("/api/graduation", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { data, error } = await supabase
       .from("graduation_project")
       .select("*")
@@ -208,6 +228,7 @@ async function startServer() {
   });
 
   app.post("/api/graduation", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { week, title, content, imageUrl, date } = req.body;
     const { data, error } = await supabase
       .from("graduation_project")
@@ -220,6 +241,7 @@ async function startServer() {
   });
 
   app.delete("/api/graduation/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { error } = await supabase
       .from("graduation_project")
       .delete()
