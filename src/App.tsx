@@ -894,15 +894,20 @@ export default function App() {
   const ProjectModal = ({ project, onClose }: { project: Work, onClose: () => void }) => {
     const [fullProject, setFullProject] = useState<Work | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
       const fetchDetails = async () => {
         try {
           const response = await fetch(`/api/work/${project.id}`);
+          if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+          }
           const data = await response.json();
           setFullProject(data);
         } catch (error) {
           console.error('Failed to fetch project details:', error);
+          setError('서버 에러가 발생했습니다. 잠시 후 다시 시도해주세요.');
         } finally {
           setIsLoading(false);
         }
@@ -915,6 +920,20 @@ export default function App() {
         <div className="fixed inset-0 z-[100] bg-paper flex items-center justify-center">
           <Loader2 className="animate-spin text-brand-green" size={48} />
           <span className="ml-4 text-xl font-bold">Loading Project...</span>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="fixed inset-0 z-[100] bg-paper flex flex-col items-center justify-center p-8">
+          <div className="text-red-500 mb-4 font-bold text-xl">{error}</div>
+          <button 
+            onClick={onClose}
+            className="px-6 py-2 bg-black text-white rounded-full hover:scale-105 transition-transform"
+          >
+            닫기
+          </button>
         </div>
       );
     }
@@ -999,15 +1018,20 @@ export default function App() {
   const BlogModal = ({ blog, onClose }: { blog: BlogPost, onClose: () => void }) => {
     const [fullBlog, setFullBlog] = useState<BlogPost | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
       const fetchDetails = async () => {
         try {
           const response = await fetch(`/api/blog/${blog.id}`);
+          if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+          }
           const data = await response.json();
           setFullBlog(data);
         } catch (error) {
           console.error('Failed to fetch blog details:', error);
+          setError('서버 에러가 발생했습니다. 잠시 후 다시 시도해주세요.');
         } finally {
           setIsLoading(false);
         }
@@ -1020,6 +1044,20 @@ export default function App() {
         <div className="fixed inset-0 z-[100] bg-paper flex items-center justify-center">
           <Loader2 className="animate-spin text-brand-green" size={48} />
           <span className="ml-4 text-xl font-bold">Loading Post...</span>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="fixed inset-0 z-[100] bg-paper flex flex-col items-center justify-center p-8">
+          <div className="text-red-500 mb-4 font-bold text-xl">{error}</div>
+          <button 
+            onClick={onClose}
+            className="px-6 py-2 bg-black text-white rounded-full hover:scale-105 transition-transform"
+          >
+            닫기
+          </button>
         </div>
       );
     }
@@ -1104,15 +1142,20 @@ export default function App() {
   const GraduationModal = ({ post, onClose }: { post: GraduationPost, onClose: () => void }) => {
     const [fullPost, setFullPost] = useState<GraduationPost | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
       const fetchDetails = async () => {
         try {
           const response = await fetch(`/api/graduation/${post.id}`);
+          if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+          }
           const data = await response.json();
           setFullPost(data);
         } catch (error) {
           console.error('Failed to fetch graduation details:', error);
+          setError('서버 에러가 발생했습니다. 잠시 후 다시 시도해주세요.');
         } finally {
           setIsLoading(false);
         }
@@ -1125,6 +1168,20 @@ export default function App() {
         <div className="fixed inset-0 z-[100] bg-paper flex items-center justify-center">
           <Loader2 className="animate-spin text-brand-green" size={48} />
           <span className="ml-4 text-xl font-bold">Loading Project...</span>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="fixed inset-0 z-[100] bg-paper flex flex-col items-center justify-center p-8">
+          <div className="text-red-500 mb-4 font-bold text-xl">{error}</div>
+          <button 
+            onClick={onClose}
+            className="px-6 py-2 bg-black text-white rounded-full hover:scale-105 transition-transform"
+          >
+            닫기
+          </button>
         </div>
       );
     }
