@@ -342,19 +342,22 @@ export default function App() {
       }
     };
 
-    const handleAddImage = async (url: string) => {
+    const handleAddImages = async (urls: string[]) => {
       if (!work) return;
       try {
-        const response = await fetch(`/api/work/${workId}/images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: url, displayOrder: (work.images?.length || 0) + 1 }),
-        });
-        const data = await response.json();
-        const newImage = { id: data.id, workId, imageUrl: url, displayOrder: (work.images?.length || 0) + 1 };
-        setWork({ ...work, images: [...(work.images || []), newImage] });
+        const newImages = [];
+        for (const url of urls) {
+          const response = await fetch(`/api/work/${workId}/images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: url, displayOrder: (work.images?.length || 0) + newImages.length + 1 }),
+          });
+          const data = await response.json();
+          newImages.push({ id: data.id, workId, imageUrl: url, displayOrder: (work.images?.length || 0) + newImages.length + 1 });
+        }
+        setWork({ ...work, images: [...(work.images || []), ...newImages] });
       } catch (error) {
-        console.error('Failed to add image:', error);
+        console.error('Failed to add images:', error);
       }
     };
 
@@ -423,20 +426,22 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Project Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {work.images?.map((img) => (
-              <div key={img.id} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
-                <img src={img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                <button 
-                  onClick={() => handleDeleteImage(img.id)}
-                  className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 size={16} />
-                </button>
+            {(work.images || []).map((img: any, idx: number) => (
+              <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
+                <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                {img.id && (
+                  <button 
+                    onClick={() => handleDeleteImage(img.id)}
+                    className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
           <div className="max-w-sm">
-            <FileUpload label="Add Detail Image" onUpload={handleAddImage} />
+            <FileUpload label="Add Detail Images (Multiple)" multiple={true} onUploads={handleAddImages} />
           </div>
         </section>
       </div>
@@ -915,8 +920,18 @@ export default function App() {
     }
 
     const displayProject = fullProject || project;
+    
+    useEffect(() => {
+      if (displayProject) {
+        console.log('ProjectModal Data:', displayProject);
+      }
+    }, [displayProject]);
 
     if (!displayProject) return null;
+
+    const mainImage = displayProject.imageUrl || (Array.isArray(displayProject.images) && displayProject.images.length > 0 
+      ? (typeof displayProject.images[0] === 'string' ? displayProject.images[0] : displayProject.images[0].imageUrl)
+      : null);
 
     return (
       <motion.div 
@@ -947,9 +962,9 @@ export default function App() {
               <h2 className="text-4xl md:text-7xl font-black tracking-tighter leading-none">{displayProject?.title}</h2>
             </div>
             
-            {displayProject?.imageUrl && (
+            {mainImage && (
               <div className="aspect-video overflow-hidden bg-gray-100">
-                <img src={displayProject.imageUrl} className="w-full h-full object-cover" alt={displayProject.title} referrerPolicy="no-referrer" />
+                <img src={mainImage} className="w-full h-full object-cover" alt={displayProject.title} referrerPolicy="no-referrer" />
               </div>
             )}
             
@@ -969,9 +984,9 @@ export default function App() {
             </div>
             
             <div className="space-y-12">
-              {displayProject?.images?.map((img) => (
-                <div key={img.id} className="w-full overflow-hidden bg-gray-50">
-                  <img src={img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
+              {(displayProject?.images || []).map((img: any, idx: number) => (
+                <div key={img.id || idx} className="w-full overflow-hidden bg-gray-50">
+                  <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
                 </div>
               ))}
             </div>
@@ -1010,8 +1025,18 @@ export default function App() {
     }
 
     const displayBlog = fullBlog || blog;
+    
+    useEffect(() => {
+      if (displayBlog) {
+        console.log('BlogModal Data:', displayBlog);
+      }
+    }, [displayBlog]);
 
     if (!displayBlog) return null;
+
+    const mainImage = displayBlog.imageUrl || (Array.isArray(displayBlog.images) && displayBlog.images.length > 0 
+      ? (typeof displayBlog.images[0] === 'string' ? displayBlog.images[0] : displayBlog.images[0].imageUrl)
+      : null);
 
     return (
       <motion.div
@@ -1037,10 +1062,10 @@ export default function App() {
             </h2>
           </header>
 
-          {displayBlog?.imageUrl && (
+          {mainImage && (
             <div className="aspect-video mb-16 overflow-hidden bg-gray-100">
               <img 
-                src={displayBlog.imageUrl} 
+                src={mainImage} 
                 alt={displayBlog.title} 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -1055,7 +1080,7 @@ export default function App() {
           </div>
 
           <div className="space-y-12 mb-20">
-            {displayBlog?.images?.map((img: any, idx: number) => (
+            {(displayBlog?.images || []).map((img: any, idx: number) => (
               <div key={img.id || idx} className="w-full overflow-hidden bg-gray-50">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
               </div>
@@ -1105,8 +1130,18 @@ export default function App() {
     }
 
     const displayPost = fullPost || post;
+    
+    useEffect(() => {
+      if (displayPost) {
+        console.log('GraduationModal Data:', displayPost);
+      }
+    }, [displayPost]);
 
     if (!displayPost) return null;
+
+    const mainImage = displayPost.imageUrl || (Array.isArray(displayPost.images) && displayPost.images.length > 0 
+      ? (typeof displayPost.images[0] === 'string' ? displayPost.images[0] : displayPost.images[0].imageUrl)
+      : null);
 
     return (
       <motion.div
@@ -1133,10 +1168,10 @@ export default function App() {
             </h2>
           </header>
 
-          {displayPost?.imageUrl && (
+          {mainImage && (
             <div className="aspect-video mb-16 overflow-hidden bg-gray-100">
               <img 
-                src={displayPost.imageUrl} 
+                src={mainImage} 
                 alt={displayPost.title} 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -1151,7 +1186,7 @@ export default function App() {
           </div>
 
           <div className="space-y-12 mb-20">
-            {displayPost?.images?.map((img: any, idx: number) => (
+            {(displayPost?.images || []).map((img: any, idx: number) => (
               <div key={img.id || idx} className="w-full overflow-hidden bg-gray-50">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
               </div>
@@ -1283,6 +1318,9 @@ export default function App() {
                     {works.map((work, index) => {
                       // Pattern: 0 is large, 1,2 are small, 3 is large, 4,5 are small...
                       const isLarge = index % 3 === 0;
+                      const mainImage = work.imageUrl || (Array.isArray(work.images) && work.images.length > 0 
+                        ? (typeof work.images[0] === 'string' ? work.images[0] : work.images[0].imageUrl)
+                        : null);
                       return (
                         <motion.div 
                           key={work.id}
@@ -1295,12 +1333,18 @@ export default function App() {
                           onMouseLeave={() => setCursorText(undefined)}
                           className={`relative overflow-hidden group bg-gray-50 cursor-pointer ${isLarge ? 'md:col-span-2 aspect-[16/9]' : 'aspect-[1/1]'}`}
                         >
-                          <img
-                            src={work.imageUrl}
-                            alt={work.title}
-                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
-                            referrerPolicy="no-referrer"
-                          />
+                          {mainImage ? (
+                            <img
+                              src={mainImage}
+                              alt={work.title}
+                              className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                              <span className="text-xs opacity-30">No Image</span>
+                            </div>
+                          )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8 md:p-12 text-white">
                             <motion.p 
                               initial={{ y: 20, opacity: 0 }}
@@ -1339,34 +1383,38 @@ export default function App() {
                     </header>
                     
                     <div className="space-y-32">
-                      {graduationPosts.map((post, index) => (
-                        <motion.article 
-                          key={post.id}
-                          initial={{ opacity: 0, y: 30 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: index * 0.1 }}
-                          className="group cursor-pointer"
-                          onClick={() => setSelectedGraduationPost(post)}
-                        >
-                          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
-                            <div className="md:col-span-1">
-                              <span className="text-4xl font-black opacity-20 group-hover:opacity-100 group-hover:text-[#78C7FE] transition-all duration-500">
-                                {String(post.week).padStart(2, '0')}
-                              </span>
-                            </div>
-                            <div className="md:col-span-5">
-                              {post.imageUrl && (
-                                <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                                  <img 
-                                    src={post.imageUrl} 
-                                    alt={post.title} 
-                                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
-                                    referrerPolicy="no-referrer"
-                                  />
-                                </div>
-                              )}
-                            </div>
+                      {graduationPosts.map((post, index) => {
+                        const mainImage = post.imageUrl || (Array.isArray(post.images) && post.images.length > 0 
+                          ? (typeof post.images[0] === 'string' ? post.images[0] : post.images[0].imageUrl)
+                          : null);
+                        return (
+                          <motion.article 
+                            key={post.id}
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: index * 0.1 }}
+                            className="group cursor-pointer"
+                            onClick={() => setSelectedGraduationPost(post)}
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+                              <div className="md:col-span-1">
+                                <span className="text-4xl font-black opacity-20 group-hover:opacity-100 group-hover:text-[#78C7FE] transition-all duration-500">
+                                  {String(post.week).padStart(2, '0')}
+                                </span>
+                              </div>
+                              <div className="md:col-span-5">
+                                {mainImage && (
+                                  <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                                    <img 
+                                      src={mainImage} 
+                                      alt={post.title} 
+                                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             <div className="md:col-span-6 space-y-4">
                               <span className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-40">Week {post.week} — {post.date}</span>
                               <h3 className="text-3xl md:text-4xl font-bold tracking-tight group-hover:text-[#78C7FE] transition-colors">{post.title}</h3>
@@ -1378,8 +1426,9 @@ export default function App() {
                             </div>
                           </div>
                         </motion.article>
-                      ))}
-                    </div>
+                      );
+                    })}
+                  </div>
                   </div>
                 </motion.div>
               )}
@@ -1647,30 +1696,34 @@ export default function App() {
                 >
                   <h2 className="text-5xl md:text-8xl font-black tracking-tighter mb-24">INSIGHTS</h2>
                   <div className="space-y-32">
-                    {blogs.map((post, index) => (
-                      <motion.article 
-                        key={post.id} 
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.8, delay: index * 0.1 }}
-                        className="group cursor-pointer border-b border-black/5 pb-20"
-                        onClick={() => setSelectedBlog(post)}
-                        onMouseEnter={() => setCursorText('READ')}
-                        onMouseLeave={() => setCursorText(undefined)}
-                      >
-                        <div className="flex flex-col md:flex-row gap-12 md:gap-20">
-                          {post.imageUrl && (
-                            <div className="w-full md:w-2/5 aspect-[4/3] overflow-hidden bg-gray-50">
-                              <img 
-                                src={post.imageUrl} 
-                                alt={post.title} 
-                                className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
-                                referrerPolicy="no-referrer"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 space-y-6 pt-4">
+                    {blogs.map((post, index) => {
+                      const mainImage = post.imageUrl || (Array.isArray(post.images) && post.images.length > 0 
+                        ? (typeof post.images[0] === 'string' ? post.images[0] : post.images[0].imageUrl)
+                        : null);
+                      return (
+                        <motion.article 
+                          key={post.id} 
+                          initial={{ opacity: 0, y: 30 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.8, delay: index * 0.1 }}
+                          className="group cursor-pointer border-b border-black/5 pb-20"
+                          onClick={() => setSelectedBlog(post)}
+                          onMouseEnter={() => setCursorText('READ')}
+                          onMouseLeave={() => setCursorText(undefined)}
+                        >
+                          <div className="flex flex-col md:flex-row gap-12 md:gap-20">
+                            {mainImage && (
+                              <div className="w-full md:w-2/5 aspect-[4/3] overflow-hidden bg-gray-50">
+                                <img 
+                                  src={mainImage} 
+                                  alt={post.title} 
+                                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
+                                  referrerPolicy="no-referrer"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 space-y-6 pt-4">
                             <div className="flex items-center gap-4">
                               <span className="text-[10px] uppercase tracking-[0.3em] opacity-50">{post.date}</span>
                               <div className="h-[1px] w-8 bg-black/10"></div>
@@ -1683,8 +1736,9 @@ export default function App() {
                           </div>
                         </div>
                       </motion.article>
-                    ))}
-                  </div>
+                    );
+                  })}
+                </div>
                   {blogs.length === 0 && (
                     <p className="text-sm opacity-60 text-center py-20">No insights shared yet.</p>
                   )}
