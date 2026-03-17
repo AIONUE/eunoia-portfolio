@@ -202,6 +202,7 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [selectedProject, setSelectedProject] = useState<Work | null>(null);
+  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null);
   const [selectedGraduationPost, setSelectedGraduationPost] = useState<GraduationPost | null>(null);
   const [editingWorkId, setEditingWorkId] = useState<number | null>(null);
   const [editingBlogId, setEditingBlogId] = useState<number | null>(null);
@@ -945,6 +946,175 @@ export default function App() {
     );
   };
 
+  const BlogModal = ({ blog, onClose }: { blog: BlogPost, onClose: () => void }) => {
+    const [fullBlog, setFullBlog] = useState<BlogPost | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchDetails = async () => {
+        try {
+          const response = await fetch(`/api/blog/${blog.id}`);
+          const data = await response.json();
+          setFullBlog(data);
+        } catch (error) {
+          console.error('Failed to fetch blog details:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchDetails();
+    }, [blog.id]);
+
+    const displayBlog = fullBlog || blog;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] bg-paper overflow-y-auto px-8 md:px-20 py-20"
+      >
+        <div className="max-w-3xl mx-auto">
+          <button 
+            onClick={onClose}
+            className="fixed top-8 right-8 md:top-12 md:right-12 p-4 bg-black text-white rounded-full hover:scale-110 transition-transform z-[110]"
+          >
+            <X size={24} />
+          </button>
+
+          <header className="mb-16 space-y-6">
+            <div className="flex items-center gap-4">
+              <span className="text-xs opacity-50 font-medium">{displayBlog.date}</span>
+            </div>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight">
+              {displayBlog.title}
+            </h2>
+          </header>
+
+          {displayBlog.imageUrl && (
+            <div className="aspect-video mb-16 overflow-hidden bg-gray-100">
+              <img 
+                src={displayBlog.imageUrl} 
+                alt={displayBlog.title} 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
+
+          <div className="prose prose-xl max-w-none mb-20">
+            <p className="text-xl md:text-2xl leading-relaxed opacity-80 whitespace-pre-wrap break-keep">
+              {displayBlog.content}
+            </p>
+          </div>
+
+          <div className="space-y-12 mb-20">
+            {displayBlog.images?.map((img) => (
+              <div key={img.id} className="w-full overflow-hidden bg-gray-50">
+                <img src={img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
+              </div>
+            ))}
+          </div>
+
+          <footer className="mt-32 pt-12 border-t border-black/5 flex justify-between items-center">
+            <button 
+              onClick={onClose}
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:opacity-60 transition-opacity"
+            >
+              <ArrowRight size={14} className="rotate-180" />
+              <span>Back to List</span>
+            </button>
+          </footer>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const GraduationModal = ({ post, onClose }: { post: GraduationPost, onClose: () => void }) => {
+    const [fullPost, setFullPost] = useState<GraduationPost | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchDetails = async () => {
+        try {
+          const response = await fetch(`/api/graduation/${post.id}`);
+          const data = await response.json();
+          setFullPost(data);
+        } catch (error) {
+          console.error('Failed to fetch graduation details:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchDetails();
+    }, [post.id]);
+
+    const displayPost = fullPost || post;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] bg-paper overflow-y-auto px-8 md:px-20 py-20"
+      >
+        <div className="max-w-3xl mx-auto">
+          <button 
+            onClick={onClose}
+            className="fixed top-8 right-8 md:top-12 md:right-12 p-4 bg-black text-white rounded-full hover:scale-110 transition-transform z-[110]"
+          >
+            <X size={24} />
+          </button>
+
+          <header className="mb-16 space-y-6">
+            <div className="flex items-center gap-4">
+              <span className="px-3 py-1 bg-[#78C7FE] text-black text-[10px] font-bold uppercase tracking-widest">Week {displayPost.week}</span>
+              <span className="text-xs opacity-50 font-medium">{displayPost.date}</span>
+            </div>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight">
+              {displayPost.title}
+            </h2>
+          </header>
+
+          {displayPost.imageUrl && (
+            <div className="aspect-video mb-16 overflow-hidden bg-gray-100">
+              <img 
+                src={displayPost.imageUrl} 
+                alt={displayPost.title} 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
+
+          <div className="prose prose-xl max-w-none mb-20">
+            <p className="text-xl md:text-2xl leading-relaxed opacity-80 whitespace-pre-wrap break-keep">
+              {displayPost.content}
+            </p>
+          </div>
+
+          <div className="space-y-12 mb-20">
+            {displayPost.images?.map((img) => (
+              <div key={img.id} className="w-full overflow-hidden bg-gray-50">
+                <img src={img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
+              </div>
+            ))}
+          </div>
+
+          <footer className="mt-32 pt-12 border-t border-black/5 flex justify-between items-center">
+            <button 
+              onClick={onClose}
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:opacity-60 transition-opacity"
+            >
+              <ArrowRight size={14} className="rotate-180" />
+              <span>Back to List</span>
+            </button>
+          </footer>
+        </div>
+      </motion.div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-paper selection:bg-[#78C7FE] selection:text-black">
       <CustomCursor hoverText={cursorText} />
@@ -1030,59 +1200,11 @@ export default function App() {
             {selectedProject && (
               <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />
             )}
+            {selectedBlog && (
+              <BlogModal blog={selectedBlog} onClose={() => setSelectedBlog(null)} />
+            )}
             {selectedGraduationPost && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] bg-paper overflow-y-auto px-8 md:px-20 py-20"
-              >
-                <div className="max-w-3xl mx-auto">
-                  <button 
-                    onClick={() => setSelectedGraduationPost(null)}
-                    className="fixed top-8 right-8 md:top-12 md:right-12 p-4 bg-black text-white rounded-full hover:scale-110 transition-transform z-[110]"
-                  >
-                    <X size={24} />
-                  </button>
-
-                  <header className="mb-16 space-y-6">
-                    <div className="flex items-center gap-4">
-                      <span className="px-3 py-1 bg-[#78C7FE] text-black text-[10px] font-bold uppercase tracking-widest">Week {selectedGraduationPost.week}</span>
-                      <span className="text-xs opacity-50 font-medium">{selectedGraduationPost.date}</span>
-                    </div>
-                    <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight">
-                      {selectedGraduationPost.title}
-                    </h2>
-                  </header>
-
-                  {selectedGraduationPost.imageUrl && (
-                    <div className="aspect-video mb-16 overflow-hidden bg-gray-100">
-                      <img 
-                        src={selectedGraduationPost.imageUrl} 
-                        alt={selectedGraduationPost.title} 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  )}
-
-                  <div className="prose prose-xl max-w-none">
-                    <p className="text-xl md:text-2xl leading-relaxed opacity-80 whitespace-pre-wrap break-keep">
-                      {selectedGraduationPost.content}
-                    </p>
-                  </div>
-
-                  <footer className="mt-32 pt-12 border-t border-black/5 flex justify-between items-center">
-                    <button 
-                      onClick={() => setSelectedGraduationPost(null)}
-                      className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:opacity-60 transition-opacity"
-                    >
-                      <ArrowRight size={14} className="rotate-180" />
-                      <span>Back to List</span>
-                    </button>
-                  </footer>
-                </div>
-              </motion.div>
+              <GraduationModal post={selectedGraduationPost} onClose={() => setSelectedGraduationPost(null)} />
             )}
           </AnimatePresence>
 
@@ -1476,6 +1598,7 @@ export default function App() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.8, delay: index * 0.1 }}
                         className="group cursor-pointer border-b border-black/5 pb-20"
+                        onClick={() => setSelectedBlog(post)}
                         onMouseEnter={() => setCursorText('READ')}
                         onMouseLeave={() => setCursorText(undefined)}
                       >
