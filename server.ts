@@ -215,6 +215,51 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  app.get("/api/blog/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
+    const { data: post, error: postError } = await supabase
+      .from("blog")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    
+    if (postError) return res.status(500).json({ error: postError.message });
+    
+    const { data: images, error: imagesError } = await supabase
+      .from("blog_images")
+      .select("*")
+      .eq("blogId", req.params.id)
+      .order("displayOrder", { ascending: true });
+    
+    if (imagesError) return res.status(500).json({ error: imagesError.message });
+    
+    res.json({ ...post, images: images || [] });
+  });
+
+  app.post("/api/blog/:id/images", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
+    const { imageUrl, displayOrder } = req.body;
+    const { data, error } = await supabase
+      .from("blog_images")
+      .insert([{ blogId: req.params.id, imageUrl, displayOrder }])
+      .select()
+      .single();
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  });
+
+  app.delete("/api/blog/images/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
+    const { error } = await supabase
+      .from("blog_images")
+      .delete()
+      .eq("id", req.params.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+  });
+
   // Graduation Routes
   app.get("/api/graduation", async (req, res) => {
     if (!supabase) return res.status(503).json({ error: "Database not configured" });
@@ -244,6 +289,51 @@ async function startServer() {
     if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { error } = await supabase
       .from("graduation_project")
+      .delete()
+      .eq("id", req.params.id);
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+  });
+
+  app.get("/api/graduation/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
+    const { data: post, error: postError } = await supabase
+      .from("graduation_project")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    
+    if (postError) return res.status(500).json({ error: postError.message });
+    
+    const { data: images, error: imagesError } = await supabase
+      .from("graduation_images")
+      .select("*")
+      .eq("graduationId", req.params.id)
+      .order("displayOrder", { ascending: true });
+    
+    if (imagesError) return res.status(500).json({ error: imagesError.message });
+    
+    res.json({ ...post, images: images || [] });
+  });
+
+  app.post("/api/graduation/:id/images", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
+    const { imageUrl, displayOrder } = req.body;
+    const { data, error } = await supabase
+      .from("graduation_images")
+      .insert([{ graduationId: req.params.id, imageUrl, displayOrder }])
+      .select()
+      .single();
+    
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  });
+
+  app.delete("/api/graduation/images/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
+    const { error } = await supabase
+      .from("graduation_images")
       .delete()
       .eq("id", req.params.id);
     

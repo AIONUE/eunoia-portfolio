@@ -75,6 +75,14 @@ interface BlogPost {
   content: string;
   imageUrl?: string;
   date: string;
+  images?: BlogImage[];
+}
+
+interface BlogImage {
+  id: number;
+  blogId: number;
+  imageUrl: string;
+  displayOrder: number;
 }
 
 interface GraduationPost {
@@ -84,6 +92,14 @@ interface GraduationPost {
   content: string;
   imageUrl?: string;
   date: string;
+  images?: GraduationImage[];
+}
+
+interface GraduationImage {
+  id: number;
+  graduationId: number;
+  imageUrl: string;
+  displayOrder: number;
 }
 
 type View = 'ABOUT' | 'WORK' | 'BLOG' | 'CONTACT' | 'ADMIN' | 'GRADUATION_PROJECT';
@@ -188,6 +204,8 @@ export default function App() {
   const [selectedProject, setSelectedProject] = useState<Work | null>(null);
   const [selectedGraduationPost, setSelectedGraduationPost] = useState<GraduationPost | null>(null);
   const [editingWorkId, setEditingWorkId] = useState<number | null>(null);
+  const [editingBlogId, setEditingBlogId] = useState<number | null>(null);
+  const [editingGraduationId, setEditingGraduationId] = useState<number | null>(null);
   const [cursorText, setCursorText] = useState<string | undefined>(undefined);
   const [showHeader, setShowHeader] = useState(true);
   const lastScrollY = useRef(0);
@@ -348,21 +366,31 @@ export default function App() {
         <section>
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Edit Project Details: {work.title}</h3>
           <form onSubmit={handleUpdate} className="space-y-6">
-            <div>
-              <label className="text-[10px] uppercase opacity-80 font-bold">Title</label>
-              <input
-                value={work.title}
-                onChange={(e) => setWork({ ...work, title: e.target.value })}
-                className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] uppercase opacity-80 font-bold">Title</label>
+                <input
+                  value={work.title}
+                  onChange={(e) => setWork({ ...work, title: e.target.value })}
+                  className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase opacity-80 font-bold">Category</label>
+                <input
+                  value={work.category}
+                  onChange={(e) => setWork({ ...work, category: e.target.value })}
+                  className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
+                />
+              </div>
             </div>
             <div>
-              <label className="text-[10px] uppercase opacity-80 font-bold">Category</label>
-              <input
-                value={work.category}
-                onChange={(e) => setWork({ ...work, category: e.target.value })}
-                className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
-              />
+              <FileUpload label="Change Main Image" onUpload={(url) => setWork({ ...work, imageUrl: url })} />
+              {work.imageUrl && (
+                <div className="mt-2 w-20 h-20 border border-gray-100 overflow-hidden">
+                  <img src={work.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                </div>
+              )}
             </div>
             <div>
               <label className="text-[10px] uppercase opacity-80 font-bold">Overview Content</label>
@@ -401,6 +429,267 @@ export default function App() {
       </div>
     );
   };
+
+  const BlogDetailEditor = ({ blogId, onBack }: { blogId: number, onBack: () => void }) => {
+    const [post, setPost] = useState<BlogPost | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchDetails = async () => {
+        try {
+          const response = await fetch(`/api/blog/${blogId}`);
+          const data = await response.json();
+          setPost(data);
+        } catch (error) {
+          console.error('Failed to fetch blog details:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchDetails();
+    }, [blogId]);
+
+    const handleUpdate = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!post) return;
+      try {
+        await fetch(`/api/blog/${blogId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(post),
+        });
+        alert('Blog post updated successfully');
+        fetchBlogs();
+      } catch (error) {
+        console.error('Failed to update blog:', error);
+      }
+    };
+
+    const handleAddImage = async (url: string) => {
+      if (!post) return;
+      try {
+        const response = await fetch(`/api/blog/${blogId}/images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: url, displayOrder: (post.images?.length || 0) + 1 }),
+        });
+        const data = await response.json();
+        const newImage = { id: data.id, blogId, imageUrl: url, displayOrder: (post.images?.length || 0) + 1 };
+        setPost({ ...post, images: [...(post.images || []), newImage] });
+      } catch (error) {
+        console.error('Failed to add image:', error);
+      }
+    };
+
+    const handleDeleteImage = async (imageId: number) => {
+      if (!post) return;
+      try {
+        await fetch(`/api/blog/images/${imageId}`, { method: 'DELETE' });
+        setPost({ ...post, images: post.images?.filter(img => img.id !== imageId) });
+      } catch (error) {
+        console.error('Failed to delete image:', error);
+      }
+    };
+
+    if (isLoading || !post) return <div className="py-20 text-center"><Loader2 className="animate-spin mx-auto" /></div>;
+
+    return (
+      <div className="space-y-12">
+        <button onClick={onBack} className="text-xs uppercase tracking-widest opacity-60 flex items-center gap-2 hover:opacity-100 transition-opacity">
+          <ArrowRight className="rotate-180" size={14} /> Back to List
+        </button>
+        
+        <section>
+          <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Edit Blog Post: {post.title}</h3>
+          <form onSubmit={handleUpdate} className="space-y-6">
+            <div>
+              <label className="text-[10px] uppercase opacity-80 font-bold">Title</label>
+              <input
+                value={post.title}
+                onChange={(e) => setPost({ ...post, title: e.target.value })}
+                className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
+              />
+            </div>
+            <div>
+              <FileUpload label="Change Main Image" onUpload={(url) => setPost({ ...post, imageUrl: url })} />
+              {post.imageUrl && (
+                <div className="mt-2 w-20 h-20 border border-gray-100 overflow-hidden">
+                  <img src={post.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-[10px] uppercase opacity-80 font-bold">Content</label>
+              <textarea
+                value={post.content || ''}
+                onChange={(e) => setPost({ ...post, content: e.target.value })}
+                className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green h-40"
+              />
+            </div>
+            <button type="submit" className="bg-black text-white px-6 py-3 text-xs uppercase tracking-widest font-bold">
+              Save Post
+            </button>
+          </form>
+        </section>
+
+        <section className="pt-12 border-t border-gray-100">
+          <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            {post.images?.map((img) => (
+              <div key={img.id} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
+                <img src={img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                <button 
+                  onClick={() => handleDeleteImage(img.id)}
+                  className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="max-w-sm">
+            <FileUpload label="Add Detail Image" onUpload={handleAddImage} />
+          </div>
+        </section>
+      </div>
+    );
+  };
+
+  const GraduationDetailEditor = ({ graduationId, onBack }: { graduationId: number, onBack: () => void }) => {
+    const [post, setPost] = useState<GraduationPost | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchDetails = async () => {
+        try {
+          const response = await fetch(`/api/graduation/${graduationId}`);
+          const data = await response.json();
+          setPost(data);
+        } catch (error) {
+          console.error('Failed to fetch graduation details:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchDetails();
+    }, [graduationId]);
+
+    const handleUpdate = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!post) return;
+      try {
+        await fetch(`/api/graduation/${graduationId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(post),
+        });
+        alert('Graduation post updated successfully');
+        fetchGraduationPosts();
+      } catch (error) {
+        console.error('Failed to update graduation:', error);
+      }
+    };
+
+    const handleAddImage = async (url: string) => {
+      if (!post) return;
+      try {
+        const response = await fetch(`/api/graduation/${graduationId}/images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: url, displayOrder: (post.images?.length || 0) + 1 }),
+        });
+        const data = await response.json();
+        const newImage = { id: data.id, graduationId, imageUrl: url, displayOrder: (post.images?.length || 0) + 1 };
+        setPost({ ...post, images: [...(post.images || []), newImage] });
+      } catch (error) {
+        console.error('Failed to add image:', error);
+      }
+    };
+
+    const handleDeleteImage = async (imageId: number) => {
+      if (!post) return;
+      try {
+        await fetch(`/api/graduation/images/${imageId}`, { method: 'DELETE' });
+        setPost({ ...post, images: post.images?.filter(img => img.id !== imageId) });
+      } catch (error) {
+        console.error('Failed to delete image:', error);
+      }
+    };
+
+    if (isLoading || !post) return <div className="py-20 text-center"><Loader2 className="animate-spin mx-auto" /></div>;
+
+    return (
+      <div className="space-y-12">
+        <button onClick={onBack} className="text-xs uppercase tracking-widest opacity-60 flex items-center gap-2 hover:opacity-100 transition-opacity">
+          <ArrowRight className="rotate-180" size={14} /> Back to List
+        </button>
+        
+        <section>
+          <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Edit Graduation Post: {post.title}</h3>
+          <form onSubmit={handleUpdate} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] uppercase opacity-80 font-bold">Week</label>
+                <input
+                  type="number"
+                  value={post.week}
+                  onChange={(e) => setPost({ ...post, week: parseInt(e.target.value) })}
+                  className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase opacity-80 font-bold">Title</label>
+                <input
+                  value={post.title}
+                  onChange={(e) => setPost({ ...post, title: e.target.value })}
+                  className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
+                />
+              </div>
+            </div>
+            <div>
+              <FileUpload label="Change Main Image" onUpload={(url) => setPost({ ...post, imageUrl: url })} />
+              {post.imageUrl && (
+                <div className="mt-2 w-20 h-20 border border-gray-100 overflow-hidden">
+                  <img src={post.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-[10px] uppercase opacity-80 font-bold">Content</label>
+              <textarea
+                value={post.content || ''}
+                onChange={(e) => setPost({ ...post, content: e.target.value })}
+                className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green h-40"
+              />
+            </div>
+            <button type="submit" className="bg-black text-white px-6 py-3 text-xs uppercase tracking-widest font-bold">
+              Save Post
+            </button>
+          </form>
+        </section>
+
+        <section className="pt-12 border-t border-gray-100">
+          <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            {post.images?.map((img) => (
+              <div key={img.id} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
+                <img src={img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                <button 
+                  onClick={() => handleDeleteImage(img.id)}
+                  className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="max-w-sm">
+            <FileUpload label="Add Detail Image" onUpload={handleAddImage} />
+          </div>
+        </section>
+      </div>
+    );
+  };
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === '1111') {
@@ -414,55 +703,100 @@ export default function App() {
 
   const handleAddWork = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/work', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newWork),
-    });
-    setNewWork({ title: '', category: '', imageUrl: '', displayOrder: 0 });
-    fetchWorks();
+    if (!newWork.title || !newWork.category || !newWork.imageUrl) {
+      alert('Please fill in all fields and upload an image');
+      return;
+    }
+    try {
+      const response = await fetch('/api/work', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newWork),
+      });
+      if (!response.ok) throw new Error('Failed to add work');
+      setNewWork({ title: '', category: '', imageUrl: '', displayOrder: 0 });
+      alert('Project added successfully!');
+      fetchWorks();
+    } catch (error) {
+      console.error('Error adding work:', error);
+      alert('Failed to add project. Please try again.');
+    }
   };
 
   const handleDeleteWork = async (id: number) => {
     if (confirm('Delete this project?')) {
-      await fetch(`/api/work/${id}`, { method: 'DELETE' });
-      fetchWorks();
+      try {
+        await fetch(`/api/work/${id}`, { method: 'DELETE' });
+        fetchWorks();
+      } catch (error) {
+        console.error('Error deleting work:', error);
+      }
     }
   };
 
   const handleAddBlog = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/blog', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newBlog),
-    });
-    setNewBlog({ title: '', content: '' });
-    fetchBlogs();
+    if (!newBlog.title || !newBlog.content) {
+      alert('Please fill in title and content');
+      return;
+    }
+    try {
+      const response = await fetch('/api/blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBlog),
+      });
+      if (!response.ok) throw new Error('Failed to add blog post');
+      setNewBlog({ title: '', content: '', imageUrl: '' });
+      alert('Blog post added successfully!');
+      fetchBlogs();
+    } catch (error) {
+      console.error('Error adding blog:', error);
+      alert('Failed to add blog post. Please try again.');
+    }
   };
 
   const handleDeleteBlog = async (id: number) => {
     if (confirm('Delete this post?')) {
-      await fetch(`/api/blog/${id}`, { method: 'DELETE' });
-      fetchBlogs();
+      try {
+        await fetch(`/api/blog/${id}`, { method: 'DELETE' });
+        fetchBlogs();
+      } catch (error) {
+        console.error('Error deleting blog:', error);
+      }
     }
   };
 
   const handleAddGraduation = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/graduation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newGraduation),
-    });
-    setNewGraduation({ week: 1, title: '', content: '', imageUrl: '' });
-    fetchGraduationPosts();
+    if (!newGraduation.title || !newGraduation.content) {
+      alert('Please fill in title and content');
+      return;
+    }
+    try {
+      const response = await fetch('/api/graduation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newGraduation),
+      });
+      if (!response.ok) throw new Error('Failed to add graduation post');
+      setNewGraduation({ week: 1, title: '', content: '', imageUrl: '' });
+      alert('Graduation post added successfully!');
+      fetchGraduationPosts();
+    } catch (error) {
+      console.error('Error adding graduation:', error);
+      alert('Failed to add graduation post. Please try again.');
+    }
   };
 
   const handleDeleteGraduation = async (id: number) => {
     if (confirm('Delete this graduation post?')) {
-      await fetch(`/api/graduation/${id}`, { method: 'DELETE' });
-      fetchGraduationPosts();
+      try {
+        await fetch(`/api/graduation/${id}`, { method: 'DELETE' });
+        fetchGraduationPosts();
+      } catch (error) {
+        console.error('Error deleting graduation:', error);
+      }
     }
   };
 
@@ -1361,110 +1695,134 @@ export default function App() {
                   )}
 
                   {/* Blog Management */}
-                  <section>
-                    <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Manage Blog</h3>
-                    <form onSubmit={handleAddBlog} className="space-y-4 mb-12">
-                      <input
-                        placeholder="Post Title"
-                        value={newBlog.title}
-                        onChange={(e) => setNewBlog({ ...newBlog, title: e.target.value })}
-                        className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
-                      />
-                      <FileUpload 
-                        label="Blog Image" 
-                        onUpload={(url) => setNewBlog({ ...newBlog, imageUrl: url })} 
-                      />
-                      {newBlog.imageUrl && (
-                        <div className="w-20 h-20 bg-gray-50 border border-gray-100 overflow-hidden">
-                          <img src={newBlog.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                        </div>
-                      )}
-                      <textarea
-                        placeholder="Post Content"
-                        value={newBlog.content}
-                        onChange={(e) => setNewBlog({ ...newBlog, content: e.target.value })}
-                        className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green h-32"
-                      />
-                      <button type="submit" className="bg-brand-green text-black p-2 text-xs uppercase tracking-widest flex items-center justify-center gap-2 font-bold">
-                        <Plus size={14} /> Add Post
-                      </button>
-                    </form>
-
-                    <div className="space-y-4">
-                      {blogs.map(post => (
-                        <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
-                          <div className="flex items-center gap-4">
-                            {post.imageUrl && <img src={post.imageUrl} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
-                            <div>
-                              <p className="text-sm font-bold">{post.title}</p>
-                              <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
-                            </div>
-                          </div>
-                          <button onClick={() => handleDeleteBlog(post.id)} className="text-red-400 hover:text-red-600">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  {/* Graduation Project Management */}
-                  <section>
-                    <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Manage Graduation Project</h3>
-                    <form onSubmit={handleAddGraduation} className="space-y-4 mb-12">
-                      <div className="grid grid-cols-2 gap-4">
-                        <input
-                          type="number"
-                          placeholder="Week"
-                          value={newGraduation.week}
-                          onChange={(e) => setNewGraduation({ ...newGraduation, week: parseInt(e.target.value) })}
-                          className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
-                        />
+                  {editingBlogId ? (
+                    <BlogDetailEditor blogId={editingBlogId} onBack={() => setEditingBlogId(null)} />
+                  ) : (
+                    <section>
+                      <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Manage Blog</h3>
+                      <form onSubmit={handleAddBlog} className="space-y-4 mb-12">
                         <input
                           placeholder="Post Title"
-                          value={newGraduation.title}
-                          onChange={(e) => setNewGraduation({ ...newGraduation, title: e.target.value })}
+                          value={newBlog.title}
+                          onChange={(e) => setNewBlog({ ...newBlog, title: e.target.value })}
                           className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
                         />
-                      </div>
-                      <FileUpload 
-                        label="Post Image" 
-                        onUpload={(url) => setNewGraduation({ ...newGraduation, imageUrl: url })} 
-                      />
-                      {newGraduation.imageUrl && (
-                        <div className="w-20 h-20 bg-gray-50 border border-gray-100 overflow-hidden">
-                          <img src={newGraduation.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                        </div>
-                      )}
-                      <textarea
-                        placeholder="Post Content"
-                        value={newGraduation.content}
-                        onChange={(e) => setNewGraduation({ ...newGraduation, content: e.target.value })}
-                        className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green h-32"
-                      />
-                      <button type="submit" className="bg-brand-green text-black p-2 text-xs uppercase tracking-widest flex items-center justify-center gap-2 font-bold">
-                        <Plus size={14} /> Add Graduation Post
-                      </button>
-                    </form>
+                        <FileUpload 
+                          label="Blog Image" 
+                          onUpload={(url) => setNewBlog({ ...newBlog, imageUrl: url })} 
+                        />
+                        {newBlog.imageUrl && (
+                          <div className="w-20 h-20 bg-gray-50 border border-gray-100 overflow-hidden">
+                            <img src={newBlog.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                        <textarea
+                          placeholder="Post Content"
+                          value={newBlog.content}
+                          onChange={(e) => setNewBlog({ ...newBlog, content: e.target.value })}
+                          className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green h-32"
+                        />
+                        <button type="submit" className="bg-brand-green text-black p-2 text-xs uppercase tracking-widest flex items-center justify-center gap-2 font-bold">
+                          <Plus size={14} /> Add Post
+                        </button>
+                      </form>
 
-                    <div className="space-y-4">
-                      {graduationPosts.map(post => (
-                        <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
-                          <div className="flex items-center gap-4">
-                            <span className="text-xs font-bold opacity-40">W{post.week}</span>
-                            {post.imageUrl && <img src={post.imageUrl} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
-                            <div>
-                              <p className="text-sm font-bold">{post.title}</p>
-                              <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                      <div className="space-y-4">
+                        {blogs.map(post => (
+                          <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
+                            <div className="flex items-center gap-4">
+                              {post.imageUrl && <img src={post.imageUrl} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
+                              <div>
+                                <p className="text-sm font-bold">{post.title}</p>
+                                <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <button 
+                                onClick={() => setEditingBlogId(post.id)}
+                                className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
+                              >
+                                Edit Details
+                              </button>
+                              <button onClick={() => handleDeleteBlog(post.id)} className="text-red-400 hover:text-red-600">
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
-                          <button onClick={() => handleDeleteGraduation(post.id)} className="text-red-400 hover:text-red-600">
-                            <Trash2 size={16} />
-                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Graduation Project Management */}
+                  {editingGraduationId ? (
+                    <GraduationDetailEditor graduationId={editingGraduationId} onBack={() => setEditingGraduationId(null)} />
+                  ) : (
+                    <section>
+                      <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Manage Graduation Project</h3>
+                      <form onSubmit={handleAddGraduation} className="space-y-4 mb-12">
+                        <div className="grid grid-cols-2 gap-4">
+                          <input
+                            type="number"
+                            placeholder="Week"
+                            value={newGraduation.week}
+                            onChange={(e) => setNewGraduation({ ...newGraduation, week: parseInt(e.target.value) })}
+                            className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
+                          />
+                          <input
+                            placeholder="Post Title"
+                            value={newGraduation.title}
+                            onChange={(e) => setNewGraduation({ ...newGraduation, title: e.target.value })}
+                            className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
+                          />
                         </div>
-                      ))}
-                    </div>
-                  </section>
+                        <FileUpload 
+                          label="Post Image" 
+                          onUpload={(url) => setNewGraduation({ ...newGraduation, imageUrl: url })} 
+                        />
+                        {newGraduation.imageUrl && (
+                          <div className="w-20 h-20 bg-gray-50 border border-gray-100 overflow-hidden">
+                            <img src={newGraduation.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                        <textarea
+                          placeholder="Post Content"
+                          value={newGraduation.content}
+                          onChange={(e) => setNewGraduation({ ...newGraduation, content: e.target.value })}
+                          className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green h-32"
+                        />
+                        <button type="submit" className="bg-brand-green text-black p-2 text-xs uppercase tracking-widest flex items-center justify-center gap-2 font-bold">
+                          <Plus size={14} /> Add Graduation Post
+                        </button>
+                      </form>
+
+                      <div className="space-y-4">
+                        {graduationPosts.map(post => (
+                          <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
+                            <div className="flex items-center gap-4">
+                              <span className="text-xs font-bold opacity-40">W{post.week}</span>
+                              {post.imageUrl && <img src={post.imageUrl} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
+                              <div>
+                                <p className="text-sm font-bold">{post.title}</p>
+                                <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <button 
+                                onClick={() => setEditingGraduationId(post.id)}
+                                className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
+                              >
+                                Edit Details
+                              </button>
+                              <button onClick={() => handleDeleteGraduation(post.id)} className="text-red-400 hover:text-red-600">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                 </div>
               )}
             </motion.div>
