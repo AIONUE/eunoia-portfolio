@@ -194,13 +194,20 @@ async function startServer() {
   app.post("/api/blog", async (req, res) => {
     if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { title, content, imageUrl, date } = req.body;
+    
+    // Use ISO date format (YYYY-MM-DD) for better database compatibility
+    const blogDate = date || new Date().toISOString().split('T')[0];
+    
     const { data, error } = await supabase
       .from("blog")
-      .insert([{ title, content, imageUrl, date: date || new Date().toLocaleDateString() }])
+      .insert([{ title, content, imageUrl, date: blogDate }])
       .select()
       .single();
     
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      console.error("Supabase error adding blog:", error);
+      return res.status(500).json({ error: error.message });
+    }
     res.json(data);
   });
 
@@ -275,13 +282,20 @@ async function startServer() {
   app.post("/api/graduation", async (req, res) => {
     if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { week, title, content, imageUrl, date } = req.body;
+    
+    // Use ISO date format (YYYY-MM-DD) for better database compatibility
+    const projectDate = date || new Date().toISOString().split('T')[0];
+    
     const { data, error } = await supabase
       .from("graduation_project")
-      .insert([{ week, title, content, imageUrl, date: date || new Date().toLocaleDateString() }])
+      .insert([{ week, title, content, imageUrl, date: projectDate }])
       .select()
       .single();
     
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      console.error("Supabase error adding graduation project:", error);
+      return res.status(500).json({ error: error.message });
+    }
     res.json(data);
   });
 

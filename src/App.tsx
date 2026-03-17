@@ -713,13 +713,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newWork),
       });
-      if (!response.ok) throw new Error('Failed to add work');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add work');
+      }
       setNewWork({ title: '', category: '', imageUrl: '', displayOrder: 0 });
       alert('Project added successfully!');
       fetchWorks();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding work:', error);
-      alert('Failed to add project. Please try again.');
+      alert(`Failed to add project: ${error.message}`);
     }
   };
 
@@ -746,13 +749,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newBlog),
       });
-      if (!response.ok) throw new Error('Failed to add blog post');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add blog post');
+      }
       setNewBlog({ title: '', content: '', imageUrl: '' });
       alert('Blog post added successfully!');
       fetchBlogs();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding blog:', error);
-      alert('Failed to add blog post. Please try again.');
+      alert(`Failed to add blog post: ${error.message}`);
     }
   };
 
@@ -779,13 +785,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newGraduation),
       });
-      if (!response.ok) throw new Error('Failed to add graduation post');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add graduation post');
+      }
       setNewGraduation({ week: 1, title: '', content: '', imageUrl: '' });
       alert('Graduation post added successfully!');
       fetchGraduationPosts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding graduation:', error);
-      alert('Failed to add graduation post. Please try again.');
+      alert(`Failed to add graduation post: ${error.message}`);
     }
   };
 
