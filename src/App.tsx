@@ -104,24 +104,35 @@ interface GraduationImage {
 
 type View = 'ABOUT' | 'WORK' | 'BLOG' | 'CONTACT' | 'ADMIN' | 'GRADUATION_PROJECT';
 
-function FileUpload({ onUpload, label }: { onUpload: (url: string) => void, label: string }) {
+function FileUpload({ onUpload, onUploads, label, multiple = false }: { onUpload?: (url: string) => void, onUploads?: (urls: string[]) => void, label: string, multiple?: boolean }) {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
     const formData = new FormData();
-    formData.append('file', file);
+    
+    if (multiple) {
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+    } else {
+      formData.append('file', files[0]);
+    }
 
     try {
-      const response = await fetch('/api/upload', {
+      const endpoint = multiple ? '/api/upload-multiple' : '/api/upload';
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       });
       const data = await response.json();
-      if (data.url) {
+      
+      if (multiple && data.urls && onUploads) {
+        onUploads(data.urls);
+      } else if (data.url && onUpload) {
         onUpload(data.url);
       }
     } catch (error) {
@@ -141,6 +152,7 @@ function FileUpload({ onUpload, label }: { onUpload: (url: string) => void, labe
           className="hidden"
           id={`file-upload-${label}`}
           accept="image/*"
+          multiple={multiple}
         />
         <label
           htmlFor={`file-upload-${label}`}
@@ -213,8 +225,8 @@ export default function App() {
 
   // Admin form states
   const [newWork, setNewWork] = useState({ title: '', category: '', imageUrl: '', displayOrder: 0 });
-  const [newBlog, setNewBlog] = useState({ title: '', content: '', imageUrl: '' });
-  const [newGraduation, setNewGraduation] = useState({ week: 1, title: '', content: '', imageUrl: '' });
+  const [newBlog, setNewBlog] = useState({ title: '', content: '', imageUrl: '', images: [] as string[] });
+  const [newGraduation, setNewGraduation] = useState({ week: 1, title: '', content: '', imageUrl: '', images: [] as string[] });
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -466,19 +478,22 @@ export default function App() {
       }
     };
 
-    const handleAddImage = async (url: string) => {
+    const handleAddImages = async (urls: string[]) => {
       if (!post) return;
       try {
-        const response = await fetch(`/api/blog/${blogId}/images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: url, displayOrder: (post.images?.length || 0) + 1 }),
-        });
-        const data = await response.json();
-        const newImage = { id: data.id, blogId, imageUrl: url, displayOrder: (post.images?.length || 0) + 1 };
-        setPost({ ...post, images: [...(post.images || []), newImage] });
+        const newImages = [];
+        for (const url of urls) {
+          const response = await fetch(`/api/blog/${blogId}/images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: url, displayOrder: (post.images?.length || 0) + newImages.length + 1 }),
+          });
+          const data = await response.json();
+          newImages.push({ id: data.id, blogId, imageUrl: url, displayOrder: (post.images?.length || 0) + newImages.length + 1 });
+        }
+        setPost({ ...post, images: [...(post.images || []), ...newImages] });
       } catch (error) {
-        console.error('Failed to add image:', error);
+        console.error('Failed to add images:', error);
       }
     };
 
@@ -536,20 +551,22 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {post.images?.map((img) => (
-              <div key={img.id} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
-                <img src={img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                <button 
-                  onClick={() => handleDeleteImage(img.id)}
-                  className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 size={16} />
-                </button>
+            {post.images?.map((img: any, idx: number) => (
+              <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
+                <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                {img.id && (
+                  <button 
+                    onClick={() => handleDeleteImage(img.id)}
+                    className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
           <div className="max-w-sm">
-            <FileUpload label="Add Detail Image" onUpload={handleAddImage} />
+            <FileUpload label="Add Detail Images (Multiple)" multiple={true} onUploads={handleAddImages} />
           </div>
         </section>
       </div>
@@ -591,19 +608,22 @@ export default function App() {
       }
     };
 
-    const handleAddImage = async (url: string) => {
+    const handleAddImages = async (urls: string[]) => {
       if (!post) return;
       try {
-        const response = await fetch(`/api/graduation/${graduationId}/images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: url, displayOrder: (post.images?.length || 0) + 1 }),
-        });
-        const data = await response.json();
-        const newImage = { id: data.id, graduationId, imageUrl: url, displayOrder: (post.images?.length || 0) + 1 };
-        setPost({ ...post, images: [...(post.images || []), newImage] });
+        const newImages = [];
+        for (const url of urls) {
+          const response = await fetch(`/api/graduation/${graduationId}/images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: url, displayOrder: (post.images?.length || 0) + newImages.length + 1 }),
+          });
+          const data = await response.json();
+          newImages.push({ id: data.id, graduationId, imageUrl: url, displayOrder: (post.images?.length || 0) + newImages.length + 1 });
+        }
+        setPost({ ...post, images: [...(post.images || []), ...newImages] });
       } catch (error) {
-        console.error('Failed to add image:', error);
+        console.error('Failed to add images:', error);
       }
     };
 
@@ -672,20 +692,22 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {post.images?.map((img) => (
-              <div key={img.id} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
-                <img src={img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                <button 
-                  onClick={() => handleDeleteImage(img.id)}
-                  className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 size={16} />
-                </button>
+            {post.images?.map((img: any, idx: number) => (
+              <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
+                <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                {img.id && (
+                  <button 
+                    onClick={() => handleDeleteImage(img.id)}
+                    className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
           <div className="max-w-sm">
-            <FileUpload label="Add Detail Image" onUpload={handleAddImage} />
+            <FileUpload label="Add Detail Images (Multiple)" multiple={true} onUploads={handleAddImages} />
           </div>
         </section>
       </div>
@@ -754,7 +776,7 @@ export default function App() {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to add blog post');
       }
-      setNewBlog({ title: '', content: '', imageUrl: '' });
+      setNewBlog({ title: '', content: '', imageUrl: '', images: [] });
       alert('Blog post added successfully!');
       fetchBlogs();
     } catch (error: any) {
@@ -790,7 +812,7 @@ export default function App() {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to add graduation post');
       }
-      setNewGraduation({ week: 1, title: '', content: '', imageUrl: '' });
+      setNewGraduation({ week: 1, title: '', content: '', imageUrl: '', images: [] });
       alert('Graduation post added successfully!');
       fetchGraduationPosts();
     } catch (error: any) {
@@ -883,7 +905,18 @@ export default function App() {
       fetchDetails();
     }, [project.id]);
 
+    if (isLoading) {
+      return (
+        <div className="fixed inset-0 z-[100] bg-paper flex items-center justify-center">
+          <Loader2 className="animate-spin text-brand-green" size={48} />
+          <span className="ml-4 text-xl font-bold">Loading Project...</span>
+        </div>
+      );
+    }
+
     const displayProject = fullProject || project;
+
+    if (!displayProject) return null;
 
     return (
       <motion.div 
@@ -910,31 +943,33 @@ export default function App() {
           
           <div className="p-8 md:p-20 space-y-12">
             <div className="space-y-4">
-              <p className="text-xs uppercase tracking-[0.3em] text-[#78C7FE] font-bold">{displayProject.category}</p>
-              <h2 className="text-4xl md:text-7xl font-black tracking-tighter leading-none">{displayProject.title}</h2>
+              <p className="text-xs uppercase tracking-[0.3em] text-[#78C7FE] font-bold">{displayProject?.category}</p>
+              <h2 className="text-4xl md:text-7xl font-black tracking-tighter leading-none">{displayProject?.title}</h2>
             </div>
             
-            <div className="aspect-video overflow-hidden bg-gray-100">
-              <img src={displayProject.imageUrl} className="w-full h-full object-cover" alt={displayProject.title} referrerPolicy="no-referrer" />
-            </div>
+            {displayProject?.imageUrl && (
+              <div className="aspect-video overflow-hidden bg-gray-100">
+                <img src={displayProject.imageUrl} className="w-full h-full object-cover" alt={displayProject.title} referrerPolicy="no-referrer" />
+              </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-12 border-t border-gray-100">
               <div className="md:col-span-2 space-y-6">
                 <h4 className="text-xs uppercase tracking-widest font-bold opacity-60">Overview</h4>
                 <div className="text-lg leading-relaxed opacity-80 whitespace-pre-wrap break-keep">
-                  {displayProject.content || "No description available."}
+                  {displayProject?.content || "No description available."}
                 </div>
               </div>
               <div className="space-y-8">
                 <div>
                   <h4 className="text-xs uppercase tracking-widest font-bold opacity-60 mb-2">Category</h4>
-                  <p className="text-sm">{displayProject.category}</p>
+                  <p className="text-sm">{displayProject?.category}</p>
                 </div>
               </div>
             </div>
             
             <div className="space-y-12">
-              {displayProject.images?.map((img) => (
+              {displayProject?.images?.map((img) => (
                 <div key={img.id} className="w-full overflow-hidden bg-gray-50">
                   <img src={img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
                 </div>
@@ -965,7 +1000,18 @@ export default function App() {
       fetchDetails();
     }, [blog.id]);
 
+    if (isLoading) {
+      return (
+        <div className="fixed inset-0 z-[100] bg-paper flex items-center justify-center">
+          <Loader2 className="animate-spin text-brand-green" size={48} />
+          <span className="ml-4 text-xl font-bold">Loading Post...</span>
+        </div>
+      );
+    }
+
     const displayBlog = fullBlog || blog;
+
+    if (!displayBlog) return null;
 
     return (
       <motion.div
@@ -984,14 +1030,14 @@ export default function App() {
 
           <header className="mb-16 space-y-6">
             <div className="flex items-center gap-4">
-              <span className="text-xs opacity-50 font-medium">{displayBlog.date}</span>
+              <span className="text-xs opacity-50 font-medium">{displayBlog?.date}</span>
             </div>
             <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight">
-              {displayBlog.title}
+              {displayBlog?.title}
             </h2>
           </header>
 
-          {displayBlog.imageUrl && (
+          {displayBlog?.imageUrl && (
             <div className="aspect-video mb-16 overflow-hidden bg-gray-100">
               <img 
                 src={displayBlog.imageUrl} 
@@ -1004,14 +1050,14 @@ export default function App() {
 
           <div className="prose prose-xl max-w-none mb-20">
             <p className="text-xl md:text-2xl leading-relaxed opacity-80 whitespace-pre-wrap break-keep">
-              {displayBlog.content}
+              {displayBlog?.content}
             </p>
           </div>
 
           <div className="space-y-12 mb-20">
-            {displayBlog.images?.map((img) => (
-              <div key={img.id} className="w-full overflow-hidden bg-gray-50">
-                <img src={img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
+            {displayBlog?.images?.map((img: any, idx: number) => (
+              <div key={img.id || idx} className="w-full overflow-hidden bg-gray-50">
+                <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
               </div>
             ))}
           </div>
@@ -1049,7 +1095,18 @@ export default function App() {
       fetchDetails();
     }, [post.id]);
 
+    if (isLoading) {
+      return (
+        <div className="fixed inset-0 z-[100] bg-paper flex items-center justify-center">
+          <Loader2 className="animate-spin text-brand-green" size={48} />
+          <span className="ml-4 text-xl font-bold">Loading Project...</span>
+        </div>
+      );
+    }
+
     const displayPost = fullPost || post;
+
+    if (!displayPost) return null;
 
     return (
       <motion.div
@@ -1068,15 +1125,15 @@ export default function App() {
 
           <header className="mb-16 space-y-6">
             <div className="flex items-center gap-4">
-              <span className="px-3 py-1 bg-[#78C7FE] text-black text-[10px] font-bold uppercase tracking-widest">Week {displayPost.week}</span>
-              <span className="text-xs opacity-50 font-medium">{displayPost.date}</span>
+              <span className="px-3 py-1 bg-[#78C7FE] text-black text-[10px] font-bold uppercase tracking-widest">Week {displayPost?.week}</span>
+              <span className="text-xs opacity-50 font-medium">{displayPost?.date}</span>
             </div>
             <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight">
-              {displayPost.title}
+              {displayPost?.title}
             </h2>
           </header>
 
-          {displayPost.imageUrl && (
+          {displayPost?.imageUrl && (
             <div className="aspect-video mb-16 overflow-hidden bg-gray-100">
               <img 
                 src={displayPost.imageUrl} 
@@ -1089,14 +1146,14 @@ export default function App() {
 
           <div className="prose prose-xl max-w-none mb-20">
             <p className="text-xl md:text-2xl leading-relaxed opacity-80 whitespace-pre-wrap break-keep">
-              {displayPost.content}
+              {displayPost?.content}
             </p>
           </div>
 
           <div className="space-y-12 mb-20">
-            {displayPost.images?.map((img) => (
-              <div key={img.id} className="w-full overflow-hidden bg-gray-50">
-                <img src={img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
+            {displayPost?.images?.map((img: any, idx: number) => (
+              <div key={img.id || idx} className="w-full overflow-hidden bg-gray-50">
+                <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
               </div>
             ))}
           </div>
@@ -1840,12 +1897,17 @@ export default function App() {
                           className="w-full p-2 border-b border-gray-200 focus:outline-none focus:border-brand-green"
                         />
                         <FileUpload 
-                          label="Blog Image" 
-                          onUpload={(url) => setNewBlog({ ...newBlog, imageUrl: url })} 
+                          label="Blog Images (Multiple)" 
+                          multiple={true}
+                          onUploads={(urls) => setNewBlog({ ...newBlog, images: urls, imageUrl: urls[0] || '' })} 
                         />
-                        {newBlog.imageUrl && (
-                          <div className="w-20 h-20 bg-gray-50 border border-gray-100 overflow-hidden">
-                            <img src={newBlog.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                        {newBlog.images.length > 0 && (
+                          <div className="flex gap-2 overflow-x-auto py-2">
+                            {newBlog.images.map((url, idx) => (
+                              <div key={idx} className="w-16 h-16 border border-gray-100 flex-shrink-0">
+                                <img src={url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                              </div>
+                            ))}
                           </div>
                         )}
                         <textarea
@@ -1909,12 +1971,17 @@ export default function App() {
                           />
                         </div>
                         <FileUpload 
-                          label="Post Image" 
-                          onUpload={(url) => setNewGraduation({ ...newGraduation, imageUrl: url })} 
+                          label="Graduation Project Images (Multiple)" 
+                          multiple={true}
+                          onUploads={(urls) => setNewGraduation({ ...newGraduation, images: urls, imageUrl: urls[0] || '' })} 
                         />
-                        {newGraduation.imageUrl && (
-                          <div className="w-20 h-20 bg-gray-50 border border-gray-100 overflow-hidden">
-                            <img src={newGraduation.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                        {newGraduation.images.length > 0 && (
+                          <div className="flex gap-2 overflow-x-auto py-2">
+                            {newGraduation.images.map((url, idx) => (
+                              <div key={idx} className="w-16 h-16 border border-gray-100 flex-shrink-0">
+                                <img src={url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                              </div>
+                            ))}
                           </div>
                         )}
                         <textarea

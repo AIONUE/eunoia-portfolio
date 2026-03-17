@@ -60,6 +60,14 @@ async function startServer() {
     res.json({ url });
   });
 
+  app.post("/api/upload-multiple", upload.array("files", 10), (req, res) => {
+    if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
+    }
+    const urls = (req.files as Express.Multer.File[]).map(file => `/uploads/${file.filename}`);
+    res.json({ urls });
+  });
+
   app.use("/uploads", express.static(uploadsDir));
 
   // Work Routes
@@ -193,14 +201,17 @@ async function startServer() {
 
   app.post("/api/blog", async (req, res) => {
     if (!supabase) return res.status(503).json({ error: "Database not configured" });
-    const { title, content, imageUrl, date } = req.body;
+    const { title, content, imageUrl, images, date } = req.body;
     
     // Use ISO date format (YYYY-MM-DD) for better database compatibility
     const blogDate = date || new Date().toISOString().split('T')[0];
     
+    const insertData: any = { title, content, imageUrl, date: blogDate };
+    if (images) insertData.images = images;
+
     const { data, error } = await supabase
       .from("blog")
-      .insert([{ title, content, imageUrl, date: blogDate }])
+      .insert([insertData])
       .select()
       .single();
     
@@ -232,7 +243,7 @@ async function startServer() {
     
     if (postError) return res.status(500).json({ error: postError.message });
     
-    const { data: images, error: imagesError } = await supabase
+    const { data: additionalImages, error: imagesError } = await supabase
       .from("blog_images")
       .select("*")
       .eq("blogId", req.params.id)
@@ -240,7 +251,13 @@ async function startServer() {
     
     if (imagesError) return res.status(500).json({ error: imagesError.message });
     
-    res.json({ ...post, images: images || [] });
+    // Merge images from column and table
+    const images = [
+      ...(post.images || []),
+      ...(additionalImages || [])
+    ];
+    
+    res.json({ ...post, images });
   });
 
   app.post("/api/blog/:id/images", async (req, res) => {
@@ -281,14 +298,17 @@ async function startServer() {
 
   app.post("/api/graduation", async (req, res) => {
     if (!supabase) return res.status(503).json({ error: "Database not configured" });
-    const { week, title, content, imageUrl, date } = req.body;
+    const { week, title, content, imageUrl, images, date } = req.body;
     
     // Use ISO date format (YYYY-MM-DD) for better database compatibility
     const projectDate = date || new Date().toISOString().split('T')[0];
     
+    const insertData: any = { week, title, content, imageUrl, date: projectDate };
+    if (images) insertData.images = images;
+
     const { data, error } = await supabase
       .from("graduation_project")
-      .insert([{ week, title, content, imageUrl, date: projectDate }])
+      .insert([insertData])
       .select()
       .single();
     
@@ -320,7 +340,7 @@ async function startServer() {
     
     if (postError) return res.status(500).json({ error: postError.message });
     
-    const { data: images, error: imagesError } = await supabase
+    const { data: additionalImages, error: imagesError } = await supabase
       .from("graduation_images")
       .select("*")
       .eq("graduationId", req.params.id)
@@ -328,7 +348,13 @@ async function startServer() {
     
     if (imagesError) return res.status(500).json({ error: imagesError.message });
     
-    res.json({ ...post, images: images || [] });
+    // Merge images from column and table
+    const images = [
+      ...(post.images || []),
+      ...(additionalImages || [])
+    ];
+    
+    res.json({ ...post, images });
   });
 
   app.post("/api/graduation/:id/images", async (req, res) => {
