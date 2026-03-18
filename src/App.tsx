@@ -556,7 +556,7 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {post.images?.map((img: any, idx: number) => (
+            {(post.images || []).map((img: any, idx: number) => (
               <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
                 {img.id && (
@@ -697,7 +697,7 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {post.images?.map((img: any, idx: number) => (
+            {(post.images || []).map((img: any, idx: number) => (
               <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
                 {img.id && (
@@ -1968,28 +1968,33 @@ export default function App() {
                       </form>
 
                       <div className="space-y-4">
-                        {works.map(work => (
-                          <div key={work.id} className="flex items-center justify-between p-4 border border-gray-100">
-                            <div className="flex items-center gap-4">
-                              <img src={work.imageUrl} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />
-                              <div>
-                                <p className="text-sm font-bold">{work.title}</p>
-                                <p className="text-[10px] uppercase opacity-80 font-bold">{work.category}</p>
+                        {works.map(work => {
+                          const mainImage = work.imageUrl || (Array.isArray(work.images) && work.images.length > 0 
+                            ? (typeof work.images[0] === 'string' ? work.images[0] : work.images[0].imageUrl)
+                            : null);
+                          return (
+                            <div key={work.id} className="flex items-center justify-between p-4 border border-gray-100">
+                              <div className="flex items-center gap-4">
+                                {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
+                                <div>
+                                  <p className="text-sm font-bold">{work.title}</p>
+                                  <p className="text-[10px] uppercase opacity-80 font-bold">{work.category}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <button 
+                                  onClick={() => setEditingWorkId(work.id)}
+                                  className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
+                                >
+                                  Edit Details
+                                </button>
+                                <button onClick={() => handleDeleteWork(work.id)} className="text-red-400 hover:text-red-600">
+                                  <Trash2 size={16} />
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <button 
-                                onClick={() => setEditingWorkId(work.id)}
-                                className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
-                              >
-                                Edit Details
-                              </button>
-                              <button onClick={() => handleDeleteWork(work.id)} className="text-red-400 hover:text-red-600">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </section>
                   )}
@@ -2033,28 +2038,33 @@ export default function App() {
                       </form>
 
                       <div className="space-y-4">
-                        {blogs.map(post => (
-                          <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
-                            <div className="flex items-center gap-4">
-                              {post.imageUrl && <img src={post.imageUrl} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
-                              <div>
-                                <p className="text-sm font-bold">{post.title}</p>
-                                <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                        {blogs.map(post => {
+                          const mainImage = post.imageUrl || (Array.isArray(post.images) && post.images.length > 0 
+                            ? (typeof post.images[0] === 'string' ? post.images[0] : post.images[0].imageUrl)
+                            : null);
+                          return (
+                            <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
+                              <div className="flex items-center gap-4">
+                                {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
+                                <div>
+                                  <p className="text-sm font-bold">{post.title}</p>
+                                  <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <button 
+                                  onClick={() => setEditingBlogId(post.id)}
+                                  className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
+                                >
+                                  Edit Details
+                                </button>
+                                <button onClick={() => handleDeleteBlog(post.id)} className="text-red-400 hover:text-red-600">
+                                  <Trash2 size={16} />
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <button 
-                                onClick={() => setEditingBlogId(post.id)}
-                                className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
-                              >
-                                Edit Details
-                              </button>
-                              <button onClick={() => handleDeleteBlog(post.id)} className="text-red-400 hover:text-red-600">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </section>
                   )}
@@ -2107,29 +2117,34 @@ export default function App() {
                       </form>
 
                       <div className="space-y-4">
-                        {graduationPosts.map(post => (
-                          <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
-                            <div className="flex items-center gap-4">
-                              <span className="text-xs font-bold opacity-40">W{post.week}</span>
-                              {post.imageUrl && <img src={post.imageUrl} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
-                              <div>
-                                <p className="text-sm font-bold">{post.title}</p>
-                                <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                        {graduationPosts.map(post => {
+                          const mainImage = post.imageUrl || (Array.isArray(post.images) && post.images.length > 0 
+                            ? (typeof post.images[0] === 'string' ? post.images[0] : post.images[0].imageUrl)
+                            : null);
+                          return (
+                            <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
+                              <div className="flex items-center gap-4">
+                                <span className="text-xs font-bold opacity-40">W{post.week}</span>
+                                {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
+                                <div>
+                                  <p className="text-sm font-bold">{post.title}</p>
+                                  <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <button 
+                                  onClick={() => setEditingGraduationId(post.id)}
+                                  className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
+                                >
+                                  Edit Details
+                                </button>
+                                <button onClick={() => handleDeleteGraduation(post.id)} className="text-red-400 hover:text-red-600">
+                                  <Trash2 size={16} />
+                                </button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <button 
-                                onClick={() => setEditingGraduationId(post.id)}
-                                className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
-                              >
-                                Edit Details
-                              </button>
-                              <button onClick={() => handleDeleteGraduation(post.id)} className="text-red-400 hover:text-red-600">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </section>
                   )}
