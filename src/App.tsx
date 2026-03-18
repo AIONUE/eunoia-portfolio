@@ -315,7 +315,9 @@ export default function App() {
       const fetchDetails = async () => {
         try {
           const response = await fetch(`/api/work/${workId}`);
+          if (!response.ok) throw new Error(`Server error: ${response.status}`);
           const data = await response.json();
+          if (!data) return;
           setWork(data);
         } catch (error) {
           console.error('Failed to fetch work details:', error);
@@ -426,19 +428,23 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Project Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {(Array.isArray(work.images) ? work.images : []).map((img: any, idx: number) => (
-              <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
-                <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                {img.id && (
-                  <button 
-                    onClick={() => handleDeleteImage(img.id)}
-                    className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            ))}
+            {(() => {
+              const images = Array.isArray(work.images) ? work.images : [];
+              console.log("Rendering data check (WorkDetailEditor):", typeof images, images);
+              return images.map((img: any, idx: number) => (
+                <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
+                  <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                  {img.id && (
+                    <button 
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ));
+            })()}
           </div>
           <div className="max-w-sm">
             <FileUpload label="Add Detail Images (Multiple)" multiple={true} onUploads={handleAddImages} />
@@ -456,7 +462,9 @@ export default function App() {
       const fetchDetails = async () => {
         try {
           const response = await fetch(`/api/blog/${blogId}`);
+          if (!response.ok) throw new Error(`Server error: ${response.status}`);
           const data = await response.json();
+          if (!data) return;
           setPost(data);
         } catch (error) {
           console.error('Failed to fetch blog details:', error);
@@ -556,19 +564,23 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {(Array.isArray(post.images) ? post.images : []).map((img: any, idx: number) => (
-              <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
-                <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                {img.id && (
-                  <button 
-                    onClick={() => handleDeleteImage(img.id)}
-                    className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            ))}
+            {(() => {
+              const images = Array.isArray(post.images) ? post.images : [];
+              console.log("Rendering data check (BlogDetailEditor):", typeof images, images);
+              return images.map((img: any, idx: number) => (
+                <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
+                  <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                  {img.id && (
+                    <button 
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ));
+            })()}
           </div>
           <div className="max-w-sm">
             <FileUpload label="Add Detail Images (Multiple)" multiple={true} onUploads={handleAddImages} />
@@ -586,7 +598,9 @@ export default function App() {
       const fetchDetails = async () => {
         try {
           const response = await fetch(`/api/graduation/${graduationId}`);
+          if (!response.ok) throw new Error(`Server error: ${response.status}`);
           const data = await response.json();
+          if (!data) return;
           setPost(data);
         } catch (error) {
           console.error('Failed to fetch graduation details:', error);
@@ -697,19 +711,23 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {(Array.isArray(post.images) ? post.images : []).map((img: any, idx: number) => (
-              <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
-                <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                {img.id && (
-                  <button 
-                    onClick={() => handleDeleteImage(img.id)}
-                    className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            ))}
+            {(() => {
+              const images = Array.isArray(post.images) ? post.images : [];
+              console.log("Rendering data check (GraduationDetailEditor):", typeof images, images);
+              return images.map((img: any, idx: number) => (
+                <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
+                  <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                  {img.id && (
+                    <button 
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ));
+            })()}
           </div>
           <div className="max-w-sm">
             <FileUpload label="Add Detail Images (Multiple)" multiple={true} onUploads={handleAddImages} />
@@ -949,6 +967,7 @@ export default function App() {
     if (!displayProject) return null;
 
     const images = Array.isArray(displayProject.images) ? displayProject.images : [];
+    console.log("Rendering data check (ProjectModal):", typeof images, images);
     const mainImage = displayProject.imageUrl || (images.length > 0 
       ? (typeof images[0] === 'string' ? images[0] : images[0].imageUrl)
       : null);
@@ -1074,6 +1093,7 @@ export default function App() {
     if (!displayBlog) return null;
 
     const images = Array.isArray(displayBlog.images) ? displayBlog.images : [];
+    console.log("Rendering data check (BlogModal):", typeof images, images);
     const mainImage = displayBlog.imageUrl || (images.length > 0 
       ? (typeof images[0] === 'string' ? images[0] : images[0].imageUrl)
       : null);
@@ -1199,6 +1219,7 @@ export default function App() {
     if (!displayPost) return null;
 
     const images = Array.isArray(displayPost.images) ? displayPost.images : [];
+    console.log("Rendering data check (GraduationModal):", typeof images, images);
     const mainImage = displayPost.imageUrl || (images.length > 0 
       ? (typeof images[0] === 'string' ? images[0] : images[0].imageUrl)
       : null);
@@ -1375,56 +1396,59 @@ export default function App() {
                 >
                   <Hero />
                   <div id="work-grid" className="saworl-grid border-t border-black/5">
-                    {works.map((work, index) => {
-                      // Pattern: 0 is large, 1,2 are small, 3 is large, 4,5 are small...
-                      const isLarge = index % 3 === 0;
-                      const workImages = Array.isArray(work.images) ? work.images : [];
-                      const mainImage = work.imageUrl || (workImages.length > 0 
-                        ? (typeof workImages[0] === 'string' ? workImages[0] : workImages[0].imageUrl)
-                        : null);
-                      return (
-                        <motion.div 
-                          key={work.id}
-                          initial={{ opacity: 0, y: 50 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true, margin: "-100px" }}
-                          transition={{ duration: 0.8, delay: index * 0.1 }}
-                          onClick={() => setSelectedProject(work)}
-                          onMouseEnter={() => setCursorText('VIEW')}
-                          onMouseLeave={() => setCursorText(undefined)}
-                          className={`relative overflow-hidden group bg-gray-50 cursor-pointer ${isLarge ? 'md:col-span-2 aspect-[16/9]' : 'aspect-[1/1]'}`}
-                        >
-                          {mainImage ? (
-                            <img
-                              src={mainImage}
-                              alt={work.title}
-                              className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                              <span className="text-xs opacity-30">No Image</span>
+                    {(() => {
+                      console.log("Rendering data check (Work List):", typeof works, works);
+                      return works.map((work, index) => {
+                        // Pattern: 0 is large, 1,2 are small, 3 is large, 4,5 are small...
+                        const isLarge = index % 3 === 0;
+                        const workImages = Array.isArray(work.images) ? work.images : [];
+                        const mainImage = work.imageUrl || (workImages.length > 0 
+                          ? (typeof workImages[0] === 'string' ? workImages[0] : workImages[0].imageUrl)
+                          : null);
+                        return (
+                          <motion.div 
+                            key={work.id}
+                            initial={{ opacity: 0, y: 50 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-100px" }}
+                            transition={{ duration: 0.8, delay: index * 0.1 }}
+                            onClick={() => setSelectedProject(work)}
+                            onMouseEnter={() => setCursorText('VIEW')}
+                            onMouseLeave={() => setCursorText(undefined)}
+                            className={`relative overflow-hidden group bg-gray-50 cursor-pointer ${isLarge ? 'md:col-span-2 aspect-[16/9]' : 'aspect-[1/1]'}`}
+                          >
+                            {mainImage ? (
+                              <img
+                                src={mainImage}
+                                alt={work.title}
+                                className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                <span className="text-xs opacity-30">No Image</span>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8 md:p-12 text-white">
+                              <motion.p 
+                                initial={{ y: 20, opacity: 0 }}
+                                whileInView={{ y: 0, opacity: 0.7 }}
+                                className="text-[10px] uppercase tracking-[0.3em] mb-2"
+                              >
+                                {work.category}
+                              </motion.p>
+                              <motion.h3 
+                                initial={{ y: 20, opacity: 0 }}
+                                whileInView={{ y: 0, opacity: 1 }}
+                                className="text-xl md:text-2xl font-bold tracking-tight"
+                              >
+                                {work.title}
+                              </motion.h3>
                             </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8 md:p-12 text-white">
-                            <motion.p 
-                              initial={{ y: 20, opacity: 0 }}
-                              whileInView={{ y: 0, opacity: 0.7 }}
-                              className="text-[10px] uppercase tracking-[0.3em] mb-2"
-                            >
-                              {work.category}
-                            </motion.p>
-                            <motion.h3 
-                              initial={{ y: 20, opacity: 0 }}
-                              whileInView={{ y: 0, opacity: 1 }}
-                              className="text-xl md:text-2xl font-bold tracking-tight"
-                            >
-                              {work.title}
-                            </motion.h3>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
+                          </motion.div>
+                        );
+                      });
+                    })()}
                   </div>
                 </motion.div>
               )}
@@ -1444,52 +1468,55 @@ export default function App() {
                     </header>
                     
                     <div className="space-y-32">
-                      {graduationPosts.map((post, index) => {
-                        const postImages = Array.isArray(post.images) ? post.images : [];
-                        const mainImage = post.imageUrl || (postImages.length > 0 
-                          ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
-                          : null);
-                        return (
-                          <motion.article 
-                            key={post.id}
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: index * 0.1 }}
-                            className="group cursor-pointer"
-                            onClick={() => setSelectedGraduationPost(post)}
-                          >
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
-                              <div className="md:col-span-1">
-                                <span className="text-4xl font-black opacity-20 group-hover:opacity-100 group-hover:text-[#78C7FE] transition-all duration-500">
-                                  {String(post.week).padStart(2, '0')}
-                                </span>
-                              </div>
-                              <div className="md:col-span-5">
-                                {mainImage && (
-                                  <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                                    <img 
-                                      src={mainImage} 
-                                      alt={post.title} 
-                                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
-                                      referrerPolicy="no-referrer"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            <div className="md:col-span-6 space-y-4">
-                              <span className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-40">Week {post.week} — {post.date}</span>
-                              <h3 className="text-3xl md:text-4xl font-bold tracking-tight group-hover:text-[#78C7FE] transition-colors">{post.title}</h3>
-                              <p className="text-lg opacity-60 line-clamp-2 leading-relaxed break-keep">{post.content}</p>
-                              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest pt-4">
-                                <span>Read More</span>
-                                <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                      {(() => {
+                        console.log("Rendering data check (Graduation List):", typeof graduationPosts, graduationPosts);
+                        return graduationPosts.map((post, index) => {
+                          const postImages = Array.isArray(post.images) ? post.images : [];
+                          const mainImage = post.imageUrl || (postImages.length > 0 
+                            ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
+                            : null);
+                          return (
+                            <motion.article 
+                              key={post.id}
+                              initial={{ opacity: 0, y: 30 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ delay: index * 0.1 }}
+                              className="group cursor-pointer"
+                              onClick={() => setSelectedGraduationPost(post)}
+                            >
+                              <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+                                <div className="md:col-span-1">
+                                  <span className="text-4xl font-black opacity-20 group-hover:opacity-100 group-hover:text-[#78C7FE] transition-all duration-500">
+                                    {String(post.week).padStart(2, '0')}
+                                  </span>
+                                </div>
+                                <div className="md:col-span-5">
+                                  {mainImage && (
+                                    <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                                      <img 
+                                        src={mainImage} 
+                                        alt={post.title} 
+                                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
+                                        referrerPolicy="no-referrer"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              <div className="md:col-span-6 space-y-4">
+                                <span className="text-[10px] uppercase tracking-[0.3em] font-bold opacity-40">Week {post.week} — {post.date}</span>
+                                <h3 className="text-3xl md:text-4xl font-bold tracking-tight group-hover:text-[#78C7FE] transition-colors">{post.title}</h3>
+                                <p className="text-lg opacity-60 line-clamp-2 leading-relaxed break-keep">{post.content}</p>
+                                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest pt-4">
+                                  <span>Read More</span>
+                                  <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </motion.article>
-                      );
-                    })}
+                          </motion.article>
+                        );
+                      });
+                    })()}
                   </div>
                   </div>
                 </motion.div>
@@ -1758,49 +1785,52 @@ export default function App() {
                 >
                   <h2 className="text-5xl md:text-8xl font-black tracking-tighter mb-24">INSIGHTS</h2>
                   <div className="space-y-32">
-                    {blogs.map((post, index) => {
-                      const postImages = Array.isArray(post.images) ? post.images : [];
-                      const mainImage = post.imageUrl || (postImages.length > 0 
-                        ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
-                        : null);
-                      return (
-                        <motion.article 
-                          key={post.id} 
-                          initial={{ opacity: 0, y: 30 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.8, delay: index * 0.1 }}
-                          className="group cursor-pointer border-b border-black/5 pb-20"
-                          onClick={() => setSelectedBlog(post)}
-                          onMouseEnter={() => setCursorText('READ')}
-                          onMouseLeave={() => setCursorText(undefined)}
-                        >
-                          <div className="flex flex-col md:flex-row gap-12 md:gap-20">
-                            {mainImage && (
-                              <div className="w-full md:w-2/5 aspect-[4/3] overflow-hidden bg-gray-50">
-                                <img 
-                                  src={mainImage} 
-                                  alt={post.title} 
-                                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
-                                  referrerPolicy="no-referrer"
-                                />
+                    {(() => {
+                      console.log("Rendering data check (Blog List):", typeof blogs, blogs);
+                      return blogs.map((post, index) => {
+                        const postImages = Array.isArray(post.images) ? post.images : [];
+                        const mainImage = post.imageUrl || (postImages.length > 0 
+                          ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
+                          : null);
+                        return (
+                          <motion.article 
+                            key={post.id} 
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.8, delay: index * 0.1 }}
+                            className="group cursor-pointer border-b border-black/5 pb-20"
+                            onClick={() => setSelectedBlog(post)}
+                            onMouseEnter={() => setCursorText('READ')}
+                            onMouseLeave={() => setCursorText(undefined)}
+                          >
+                            <div className="flex flex-col md:flex-row gap-12 md:gap-20">
+                              {mainImage && (
+                                <div className="w-full md:w-2/5 aspect-[4/3] overflow-hidden bg-gray-50">
+                                  <img 
+                                    src={mainImage} 
+                                    alt={post.title} 
+                                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex-1 space-y-6 pt-4">
+                              <div className="flex items-center gap-4">
+                                <span className="text-[10px] uppercase tracking-[0.3em] opacity-50">{post.date}</span>
+                                <div className="h-[1px] w-8 bg-black/10"></div>
                               </div>
-                            )}
-                            <div className="flex-1 space-y-6 pt-4">
-                            <div className="flex items-center gap-4">
-                              <span className="text-[10px] uppercase tracking-[0.3em] opacity-50">{post.date}</span>
-                              <div className="h-[1px] w-8 bg-black/10"></div>
-                            </div>
-                            <h3 className="text-3xl md:text-5xl font-black tracking-tighter group-hover:text-brand-green transition-colors duration-500">{post.title}</h3>
-                            <p className="text-base md:text-lg leading-relaxed opacity-70 font-normal line-clamp-3 whitespace-pre-wrap break-keep">{post.content}</p>
-                            <div className="pt-6 flex items-center gap-4 text-[10px] uppercase tracking-[0.3em] font-bold group-hover:gap-8 transition-all duration-500">
-                              Explore Article <ChevronRight size={14} className="text-[#78C7FE]" />
+                              <h3 className="text-3xl md:text-5xl font-black tracking-tighter group-hover:text-brand-green transition-colors duration-500">{post.title}</h3>
+                              <p className="text-base md:text-lg leading-relaxed opacity-70 font-normal line-clamp-3 whitespace-pre-wrap break-keep">{post.content}</p>
+                              <div className="pt-6 flex items-center gap-4 text-[10px] uppercase tracking-[0.3em] font-bold group-hover:gap-8 transition-all duration-500">
+                                Explore Article <ChevronRight size={14} className="text-[#78C7FE]" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </motion.article>
-                    );
-                  })}
+                        </motion.article>
+                      );
+                    });
+                  })()}
                 </div>
                   {blogs.length === 0 && (
                     <p className="text-sm opacity-60 text-center py-20">No insights shared yet.</p>
@@ -1974,34 +2004,37 @@ export default function App() {
                       </form>
 
                       <div className="space-y-4">
-                        {works.map(work => {
-                          const workImages = Array.isArray(work.images) ? work.images : [];
-                          const mainImage = work.imageUrl || (workImages.length > 0 
-                            ? (typeof workImages[0] === 'string' ? workImages[0] : workImages[0].imageUrl)
-                            : null);
-                          return (
-                            <div key={work.id} className="flex items-center justify-between p-4 border border-gray-100">
-                              <div className="flex items-center gap-4">
-                                {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
-                                <div>
-                                  <p className="text-sm font-bold">{work.title}</p>
-                                  <p className="text-[10px] uppercase opacity-80 font-bold">{work.category}</p>
+                        {(() => {
+                          console.log("Rendering data check (Admin Work List):", typeof works, works);
+                          return works.map(work => {
+                            const workImages = Array.isArray(work.images) ? work.images : [];
+                            const mainImage = work.imageUrl || (workImages.length > 0 
+                              ? (typeof workImages[0] === 'string' ? workImages[0] : workImages[0].imageUrl)
+                              : null);
+                            return (
+                              <div key={work.id} className="flex items-center justify-between p-4 border border-gray-100">
+                                <div className="flex items-center gap-4">
+                                  {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
+                                  <div>
+                                    <p className="text-sm font-bold">{work.title}</p>
+                                    <p className="text-[10px] uppercase opacity-80 font-bold">{work.category}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <button 
+                                    onClick={() => setEditingWorkId(work.id)}
+                                    className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
+                                  >
+                                    Edit Details
+                                  </button>
+                                  <button onClick={() => handleDeleteWork(work.id)} className="text-red-400 hover:text-red-600">
+                                    <Trash2 size={16} />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-4">
-                                <button 
-                                  onClick={() => setEditingWorkId(work.id)}
-                                  className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
-                                >
-                                  Edit Details
-                                </button>
-                                <button onClick={() => handleDeleteWork(work.id)} className="text-red-400 hover:text-red-600">
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          });
+                        })()}
                       </div>
                     </section>
                   )}
@@ -2026,11 +2059,15 @@ export default function App() {
                         />
                         {newBlog.images.length > 0 && (
                           <div className="flex gap-2 overflow-x-auto py-2">
-                            {(Array.isArray(newBlog.images) ? newBlog.images : []).map((url, idx) => (
-                              <div key={idx} className="w-16 h-16 border border-gray-100 flex-shrink-0">
-                                <img src={url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                              </div>
-                            ))}
+                            {(() => {
+                              const images = Array.isArray(newBlog.images) ? newBlog.images : [];
+                              console.log("Rendering data check (Admin NewBlog):", typeof images, images);
+                              return images.map((url, idx) => (
+                                <div key={idx} className="w-16 h-16 border border-gray-100 flex-shrink-0">
+                                  <img src={url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                                </div>
+                              ));
+                            })()}
                           </div>
                         )}
                         <textarea
@@ -2045,34 +2082,37 @@ export default function App() {
                       </form>
 
                       <div className="space-y-4">
-                        {blogs.map(post => {
-                          const postImages = Array.isArray(post.images) ? post.images : [];
-                          const mainImage = post.imageUrl || (postImages.length > 0 
-                            ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
-                            : null);
-                          return (
-                            <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
-                              <div className="flex items-center gap-4">
-                                {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
-                                <div>
-                                  <p className="text-sm font-bold">{post.title}</p>
-                                  <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                        {(() => {
+                          console.log("Rendering data check (Admin Blog List):", typeof blogs, blogs);
+                          return blogs.map(post => {
+                            const postImages = Array.isArray(post.images) ? post.images : [];
+                            const mainImage = post.imageUrl || (postImages.length > 0 
+                              ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
+                              : null);
+                            return (
+                              <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
+                                <div className="flex items-center gap-4">
+                                  {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
+                                  <div>
+                                    <p className="text-sm font-bold">{post.title}</p>
+                                    <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <button 
+                                    onClick={() => setEditingBlogId(post.id)}
+                                    className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
+                                  >
+                                    Edit Details
+                                  </button>
+                                  <button onClick={() => handleDeleteBlog(post.id)} className="text-red-400 hover:text-red-600">
+                                    <Trash2 size={16} />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-4">
-                                <button 
-                                  onClick={() => setEditingBlogId(post.id)}
-                                  className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
-                                >
-                                  Edit Details
-                                </button>
-                                <button onClick={() => handleDeleteBlog(post.id)} className="text-red-400 hover:text-red-600">
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          });
+                        })()}
                       </div>
                     </section>
                   )}
@@ -2106,11 +2146,15 @@ export default function App() {
                         />
                         {newGraduation.images.length > 0 && (
                           <div className="flex gap-2 overflow-x-auto py-2">
-                            {(Array.isArray(newGraduation.images) ? newGraduation.images : []).map((url, idx) => (
-                              <div key={idx} className="w-16 h-16 border border-gray-100 flex-shrink-0">
-                                <img src={url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
-                              </div>
-                            ))}
+                            {(() => {
+                              const images = Array.isArray(newGraduation.images) ? newGraduation.images : [];
+                              console.log("Rendering data check (Admin NewGraduation):", typeof images, images);
+                              return images.map((url, idx) => (
+                                <div key={idx} className="w-16 h-16 border border-gray-100 flex-shrink-0">
+                                  <img src={url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                                </div>
+                              ));
+                            })()}
                           </div>
                         )}
                         <textarea
@@ -2125,35 +2169,38 @@ export default function App() {
                       </form>
 
                       <div className="space-y-4">
-                        {graduationPosts.map(post => {
-                          const postImages = Array.isArray(post.images) ? post.images : [];
-                          const mainImage = post.imageUrl || (postImages.length > 0 
-                            ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
-                            : null);
-                          return (
-                            <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
-                              <div className="flex items-center gap-4">
-                                <span className="text-xs font-bold opacity-40">W{post.week}</span>
-                                {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
-                                <div>
-                                  <p className="text-sm font-bold">{post.title}</p>
-                                  <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                        {(() => {
+                          console.log("Rendering data check (Admin Graduation List):", typeof graduationPosts, graduationPosts);
+                          return graduationPosts.map(post => {
+                            const postImages = Array.isArray(post.images) ? post.images : [];
+                            const mainImage = post.imageUrl || (postImages.length > 0 
+                              ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
+                              : null);
+                            return (
+                              <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
+                                <div className="flex items-center gap-4">
+                                  <span className="text-xs font-bold opacity-40">W{post.week}</span>
+                                  {mainImage && <img src={mainImage} className="w-12 h-12 object-cover" alt="" referrerPolicy="no-referrer" />}
+                                  <div>
+                                    <p className="text-sm font-bold">{post.title}</p>
+                                    <p className="text-[10px] uppercase opacity-80 font-bold">{post.date}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <button 
+                                    onClick={() => setEditingGraduationId(post.id)}
+                                    className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
+                                  >
+                                    Edit Details
+                                  </button>
+                                  <button onClick={() => handleDeleteGraduation(post.id)} className="text-red-400 hover:text-red-600">
+                                    <Trash2 size={16} />
+                                  </button>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-4">
-                                <button 
-                                  onClick={() => setEditingGraduationId(post.id)}
-                                  className="text-xs uppercase tracking-widest font-bold opacity-60 hover:opacity-100 hover:text-brand-green transition-all"
-                                >
-                                  Edit Details
-                                </button>
-                                <button onClick={() => handleDeleteGraduation(post.id)} className="text-red-400 hover:text-red-600">
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          });
+                        })()}
                       </div>
                     </section>
                   )}
