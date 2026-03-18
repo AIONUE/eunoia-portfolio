@@ -426,7 +426,7 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Project Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {(work.images || []).map((img: any, idx: number) => (
+            {(Array.isArray(work.images) ? work.images : []).map((img: any, idx: number) => (
               <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
                 {img.id && (
@@ -556,7 +556,7 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {(post.images || []).map((img: any, idx: number) => (
+            {(Array.isArray(post.images) ? post.images : []).map((img: any, idx: number) => (
               <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
                 {img.id && (
@@ -697,7 +697,7 @@ export default function App() {
         <section className="pt-12 border-t border-gray-100">
           <h3 className="text-xs uppercase tracking-widest font-bold mb-6 text-brand-green">Additional Images</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {(post.images || []).map((img: any, idx: number) => (
+            {(Array.isArray(post.images) ? post.images : []).map((img: any, idx: number) => (
               <div key={img.id || idx} className="relative group aspect-video bg-gray-50 border border-gray-100 overflow-hidden">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
                 {img.id && (
@@ -942,14 +942,15 @@ export default function App() {
     
     useEffect(() => {
       if (displayProject) {
-        console.log('ProjectModal Data:', displayProject);
+        console.log('ProjectModal Data:', JSON.stringify(displayProject));
       }
     }, [displayProject]);
 
     if (!displayProject) return null;
 
-    const mainImage = displayProject.imageUrl || (Array.isArray(displayProject.images) && displayProject.images.length > 0 
-      ? (typeof displayProject.images[0] === 'string' ? displayProject.images[0] : displayProject.images[0].imageUrl)
+    const images = Array.isArray(displayProject.images) ? displayProject.images : [];
+    const mainImage = displayProject.imageUrl || (images.length > 0 
+      ? (typeof images[0] === 'string' ? images[0] : images[0].imageUrl)
       : null);
 
     return (
@@ -1003,7 +1004,7 @@ export default function App() {
             </div>
             
             <div className="space-y-12">
-              {(displayProject?.images || []).map((img: any, idx: number) => (
+              {images.map((img: any, idx: number) => (
                 <div key={img.id || idx} className="w-full overflow-hidden bg-gray-50">
                   <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
                 </div>
@@ -1066,14 +1067,15 @@ export default function App() {
     
     useEffect(() => {
       if (displayBlog) {
-        console.log('BlogModal Data:', displayBlog);
+        console.log('BlogModal Data:', JSON.stringify(displayBlog));
       }
     }, [displayBlog]);
 
     if (!displayBlog) return null;
 
-    const mainImage = displayBlog.imageUrl || (Array.isArray(displayBlog.images) && displayBlog.images.length > 0 
-      ? (typeof displayBlog.images[0] === 'string' ? displayBlog.images[0] : displayBlog.images[0].imageUrl)
+    const images = Array.isArray(displayBlog.images) ? displayBlog.images : [];
+    const mainImage = displayBlog.imageUrl || (images.length > 0 
+      ? (typeof images[0] === 'string' ? images[0] : images[0].imageUrl)
       : null);
 
     return (
@@ -1118,7 +1120,7 @@ export default function App() {
           </div>
 
           <div className="space-y-12 mb-20">
-            {(displayBlog?.images || []).map((img: any, idx: number) => (
+            {images.map((img: any, idx: number) => (
               <div key={img.id || idx} className="w-full overflow-hidden bg-gray-50">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
               </div>
@@ -1190,14 +1192,15 @@ export default function App() {
     
     useEffect(() => {
       if (displayPost) {
-        console.log('GraduationModal Data:', displayPost);
+        console.log('GraduationModal Data:', JSON.stringify(displayPost));
       }
     }, [displayPost]);
 
     if (!displayPost) return null;
 
-    const mainImage = displayPost.imageUrl || (Array.isArray(displayPost.images) && displayPost.images.length > 0 
-      ? (typeof displayPost.images[0] === 'string' ? displayPost.images[0] : displayPost.images[0].imageUrl)
+    const images = Array.isArray(displayPost.images) ? displayPost.images : [];
+    const mainImage = displayPost.imageUrl || (images.length > 0 
+      ? (typeof images[0] === 'string' ? images[0] : images[0].imageUrl)
       : null);
 
     return (
@@ -1243,7 +1246,7 @@ export default function App() {
           </div>
 
           <div className="space-y-12 mb-20">
-            {(displayPost?.images || []).map((img: any, idx: number) => (
+            {images.map((img: any, idx: number) => (
               <div key={img.id || idx} className="w-full overflow-hidden bg-gray-50">
                 <img src={typeof img === 'string' ? img : img.imageUrl} className="w-full h-auto object-cover" alt="" referrerPolicy="no-referrer" />
               </div>
@@ -1375,8 +1378,9 @@ export default function App() {
                     {works.map((work, index) => {
                       // Pattern: 0 is large, 1,2 are small, 3 is large, 4,5 are small...
                       const isLarge = index % 3 === 0;
-                      const mainImage = work.imageUrl || (Array.isArray(work.images) && work.images.length > 0 
-                        ? (typeof work.images[0] === 'string' ? work.images[0] : work.images[0].imageUrl)
+                      const workImages = Array.isArray(work.images) ? work.images : [];
+                      const mainImage = work.imageUrl || (workImages.length > 0 
+                        ? (typeof workImages[0] === 'string' ? workImages[0] : workImages[0].imageUrl)
                         : null);
                       return (
                         <motion.div 
@@ -1441,8 +1445,9 @@ export default function App() {
                     
                     <div className="space-y-32">
                       {graduationPosts.map((post, index) => {
-                        const mainImage = post.imageUrl || (Array.isArray(post.images) && post.images.length > 0 
-                          ? (typeof post.images[0] === 'string' ? post.images[0] : post.images[0].imageUrl)
+                        const postImages = Array.isArray(post.images) ? post.images : [];
+                        const mainImage = post.imageUrl || (postImages.length > 0 
+                          ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
                           : null);
                         return (
                           <motion.article 
@@ -1754,8 +1759,9 @@ export default function App() {
                   <h2 className="text-5xl md:text-8xl font-black tracking-tighter mb-24">INSIGHTS</h2>
                   <div className="space-y-32">
                     {blogs.map((post, index) => {
-                      const mainImage = post.imageUrl || (Array.isArray(post.images) && post.images.length > 0 
-                        ? (typeof post.images[0] === 'string' ? post.images[0] : post.images[0].imageUrl)
+                      const postImages = Array.isArray(post.images) ? post.images : [];
+                      const mainImage = post.imageUrl || (postImages.length > 0 
+                        ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
                         : null);
                       return (
                         <motion.article 
@@ -1969,8 +1975,9 @@ export default function App() {
 
                       <div className="space-y-4">
                         {works.map(work => {
-                          const mainImage = work.imageUrl || (Array.isArray(work.images) && work.images.length > 0 
-                            ? (typeof work.images[0] === 'string' ? work.images[0] : work.images[0].imageUrl)
+                          const workImages = Array.isArray(work.images) ? work.images : [];
+                          const mainImage = work.imageUrl || (workImages.length > 0 
+                            ? (typeof workImages[0] === 'string' ? workImages[0] : workImages[0].imageUrl)
                             : null);
                           return (
                             <div key={work.id} className="flex items-center justify-between p-4 border border-gray-100">
@@ -2019,7 +2026,7 @@ export default function App() {
                         />
                         {newBlog.images.length > 0 && (
                           <div className="flex gap-2 overflow-x-auto py-2">
-                            {newBlog.images.map((url, idx) => (
+                            {(Array.isArray(newBlog.images) ? newBlog.images : []).map((url, idx) => (
                               <div key={idx} className="w-16 h-16 border border-gray-100 flex-shrink-0">
                                 <img src={url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
                               </div>
@@ -2039,8 +2046,9 @@ export default function App() {
 
                       <div className="space-y-4">
                         {blogs.map(post => {
-                          const mainImage = post.imageUrl || (Array.isArray(post.images) && post.images.length > 0 
-                            ? (typeof post.images[0] === 'string' ? post.images[0] : post.images[0].imageUrl)
+                          const postImages = Array.isArray(post.images) ? post.images : [];
+                          const mainImage = post.imageUrl || (postImages.length > 0 
+                            ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
                             : null);
                           return (
                             <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">
@@ -2098,7 +2106,7 @@ export default function App() {
                         />
                         {newGraduation.images.length > 0 && (
                           <div className="flex gap-2 overflow-x-auto py-2">
-                            {newGraduation.images.map((url, idx) => (
+                            {(Array.isArray(newGraduation.images) ? newGraduation.images : []).map((url, idx) => (
                               <div key={idx} className="w-16 h-16 border border-gray-100 flex-shrink-0">
                                 <img src={url} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
                               </div>
@@ -2118,8 +2126,9 @@ export default function App() {
 
                       <div className="space-y-4">
                         {graduationPosts.map(post => {
-                          const mainImage = post.imageUrl || (Array.isArray(post.images) && post.images.length > 0 
-                            ? (typeof post.images[0] === 'string' ? post.images[0] : post.images[0].imageUrl)
+                          const postImages = Array.isArray(post.images) ? post.images : [];
+                          const mainImage = post.imageUrl || (postImages.length > 0 
+                            ? (typeof postImages[0] === 'string' ? postImages[0] : postImages[0].imageUrl)
                             : null);
                           return (
                             <div key={post.id} className="flex items-center justify-between p-4 border border-gray-100">

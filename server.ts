@@ -293,7 +293,7 @@ async function startServer() {
       .order("id", { ascending: false });
     
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    res.json(data || []);
   });
 
   app.post("/api/blog", async (req, res) => {
@@ -447,7 +447,7 @@ async function startServer() {
       .order("week", { ascending: true });
     
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    res.json(data || []);
   });
 
   app.post("/api/graduation", async (req, res) => {
