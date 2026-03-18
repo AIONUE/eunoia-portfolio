@@ -144,12 +144,12 @@ async function startServer() {
             console.error("Supabase error adding work (retry):", retryError);
             return res.status(500).json({ error: retryError.message });
           }
-          return res.json(retryData);
+          return res.json(retryData || {});
         }
         console.error("Supabase error adding work:", error);
         return res.status(500).json({ error: error.message });
       }
-      res.json(data);
+      res.json(data || {});
     } catch (err) {
       console.error("Unexpected error in POST /api/work:", err);
       res.status(500).json({ error: "Internal server error" });
@@ -214,7 +214,7 @@ async function startServer() {
       .single();
     
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    res.json(data || {});
   });
 
   app.delete("/api/work/images/:id", async (req, res) => {
@@ -346,13 +346,13 @@ async function startServer() {
             console.error("Supabase error adding blog (retry):", retryError);
             return res.status(500).json({ error: retryError.message });
           }
-          return res.json(retryData);
+          return res.json(retryData || {});
         }
         
         console.error("Supabase error adding blog:", error);
         return res.status(500).json({ error: error.message });
       }
-      res.json(data);
+      res.json(data || {});
     } catch (err) {
       console.error("Unexpected error in POST /api/blog:", err);
       res.status(500).json({ error: "Internal server error" });
@@ -424,7 +424,7 @@ async function startServer() {
       .single();
     
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    res.json(data || {});
   });
 
   app.delete("/api/blog/images/:id", async (req, res) => {
@@ -494,13 +494,13 @@ async function startServer() {
             console.error("Supabase error adding graduation project (retry):", retryError);
             return res.status(500).json({ error: retryError.message });
           }
-          return res.json(retryData);
+          return res.json(retryData || {});
         }
 
         console.error("Supabase error adding graduation project:", error);
         return res.status(500).json({ error: error.message });
       }
-      res.json(data);
+      res.json(data || {});
     } catch (err) {
       console.error("Unexpected error in POST /api/graduation:", err);
       res.status(500).json({ error: "Internal server error" });
@@ -570,7 +570,7 @@ async function startServer() {
       .single();
     
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+    res.json(data || {});
   });
 
   app.delete("/api/graduation/images/:id", async (req, res) => {
