@@ -914,6 +914,14 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const displayProject = fullProject || project;
+    
+    useEffect(() => {
+      if (displayProject) {
+        console.log('ProjectModal Data:', JSON.stringify(displayProject));
+      }
+    }, [displayProject]);
+
     useEffect(() => {
       const fetchDetails = async () => {
         try {
@@ -955,14 +963,6 @@ export default function App() {
         </div>
       );
     }
-
-    const displayProject = fullProject || project;
-    
-    useEffect(() => {
-      if (displayProject) {
-        console.log('ProjectModal Data:', JSON.stringify(displayProject));
-      }
-    }, [displayProject]);
 
     if (!displayProject) return null;
 
@@ -1040,6 +1040,14 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const displayBlog = fullBlog || blog;
+    
+    useEffect(() => {
+      if (displayBlog) {
+        console.log('BlogModal Data:', JSON.stringify(displayBlog));
+      }
+    }, [displayBlog]);
+
     useEffect(() => {
       const fetchDetails = async () => {
         try {
@@ -1081,14 +1089,6 @@ export default function App() {
         </div>
       );
     }
-
-    const displayBlog = fullBlog || blog;
-    
-    useEffect(() => {
-      if (displayBlog) {
-        console.log('BlogModal Data:', JSON.stringify(displayBlog));
-      }
-    }, [displayBlog]);
 
     if (!displayBlog) return null;
 
@@ -1166,6 +1166,14 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const displayPost = fullPost || post;
+    
+    useEffect(() => {
+      if (displayPost) {
+        console.log('GraduationModal Data:', JSON.stringify(displayPost));
+      }
+    }, [displayPost]);
+
     useEffect(() => {
       const fetchDetails = async () => {
         try {
@@ -1207,14 +1215,6 @@ export default function App() {
         </div>
       );
     }
-
-    const displayPost = fullPost || post;
-    
-    useEffect(() => {
-      if (displayPost) {
-        console.log('GraduationModal Data:', JSON.stringify(displayPost));
-      }
-    }, [displayPost]);
 
     if (!displayPost) return null;
 

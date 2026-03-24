@@ -543,7 +543,7 @@ async function startServer() {
         .order("displayOrder", { ascending: true });
       
       if (imagesError) {
-        console.error(`Error fetching graduation images for ${req.params.id}:`, imagesError);
+        console.error(`Error fetching graduation images for ${req.params.id}:`, JSON.stringify(imagesError, null, 2));
       }
       
       // Merge images from column and table
