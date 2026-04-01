@@ -15,8 +15,8 @@ const __dirname = path.dirname(__filename);
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
 // Supabase Configuration
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseKey = process.env.SUPABASE_ANON_KEY || "";
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
 
 let supabase: any = null;
 
@@ -35,40 +35,78 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // Configure multer for file uploads
-  const uploadsDir = path.join(process.cwd(), "uploads");
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      cb(null, uniqueSuffix + path.extname(file.originalname));
-    },
-  });
-
+  // Configure multer for file uploads (Memory storage since we're using Supabase)
+  const storage = multer.memoryStorage();
   const upload = multer({ storage });
 
-  // API Routes
-  app.post("/api/upload", upload.single("file"), (req, res) => {
+  // API Routes - Legacy upload routes now using Supabase Storage as fallback
+  app.post("/api/upload", upload.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    const url = `/uploads/${req.file.filename}`;
-    res.json({ url });
+    if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
+
+    try {
+      const file = req.file;
+      const fileExt = path.extname(file.originalname);
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}${fileExt}`;
+      const filePath = fileName;
+
+      const { data, error } = await supabase.storage
+        .from('images')
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      res.json({ url: publicUrl });
+    } catch (err: any) {
+      console.error("Server-side upload error:", err);
+      res.status(500).json({ error: err.message });
+    }
   });
 
-  app.post("/api/upload-multiple", upload.array("files", 10), (req, res) => {
+  app.post("/api/upload-multiple", upload.array("files", 10), async (req, res) => {
     if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
       return res.status(400).json({ error: "No files uploaded" });
     }
-    const urls = (req.files as Express.Multer.File[]).map(file => `/uploads/${file.filename}`);
-    res.json({ urls });
-  });
+    if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
 
-  app.use("/uploads", express.static(uploadsDir));
+    try {
+      const files = req.files as Express.Multer.File[];
+      const urls = [];
+
+      for (const file of files) {
+        const fileExt = path.extname(file.originalname);
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}${fileExt}`;
+        const filePath = fileName;
+
+        const { data, error } = await supabase.storage
+          .from('images')
+          .upload(filePath, file.buffer, {
+            contentType: file.mimetype,
+            upsert: false
+          });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('images')
+          .getPublicUrl(filePath);
+        
+        urls.push(publicUrl);
+      }
+
+      res.json({ urls });
+    } catch (err: any) {
+      console.error("Server-side multiple upload error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // Work Routes
   app.get("/api/work", async (req, res) => {
@@ -359,6 +397,43 @@ async function startServer() {
     }
   });
 
+  app.post("/api/blog/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
+    try {
+      const { title, content, imageUrl, images, date } = req.body;
+      const updateData: any = { title, content, images, date };
+      if (imageUrl) updateData.imageUrl = imageUrl;
+
+      const { error } = await supabase
+        .from("blog")
+        .update(updateData)
+        .eq("id", req.params.id);
+      
+      if (error) {
+        if (error.message.includes('column "imageUrl" of relation "blog" does not exist')) {
+          console.log("imageUrl column missing in blog table, retrying without it...");
+          delete updateData.imageUrl;
+          const { error: retryError } = await supabase
+            .from("blog")
+            .update(updateData)
+            .eq("id", req.params.id);
+          
+          if (retryError) {
+            console.error("Supabase error updating blog (retry):", retryError);
+            return res.status(500).json({ error: retryError.message });
+          }
+          return res.json({ success: true });
+        }
+        console.error("Supabase error updating blog:", error);
+        return res.status(500).json({ error: error.message });
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Unexpected error in POST /api/blog/:id:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.delete("/api/blog/:id", async (req, res) => {
     if (!supabase) return res.status(503).json({ error: "Database not configured" });
     const { error } = await supabase
@@ -503,6 +578,43 @@ async function startServer() {
       res.json(data || {});
     } catch (err) {
       console.error("Unexpected error in POST /api/graduation:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/graduation/:id", async (req, res) => {
+    if (!supabase) return res.status(503).json({ error: "Database not configured" });
+    try {
+      const { week, title, content, imageUrl, images, date } = req.body;
+      const updateData: any = { week, title, content, images, date };
+      if (imageUrl) updateData.imageUrl = imageUrl;
+
+      const { error } = await supabase
+        .from("graduation_project")
+        .update(updateData)
+        .eq("id", req.params.id);
+      
+      if (error) {
+        if (error.message.includes('column "imageUrl" of relation "graduation_project" does not exist')) {
+          console.log("imageUrl column missing in graduation_project table, retrying without it...");
+          delete updateData.imageUrl;
+          const { error: retryError } = await supabase
+            .from("graduation_project")
+            .update(updateData)
+            .eq("id", req.params.id);
+          
+          if (retryError) {
+            console.error("Supabase error updating graduation (retry):", retryError);
+            return res.status(500).json({ error: retryError.message });
+          }
+          return res.json({ success: true });
+        }
+        console.error("Supabase error updating graduation:", error);
+        return res.status(500).json({ error: error.message });
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Unexpected error in POST /api/graduation/:id:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });

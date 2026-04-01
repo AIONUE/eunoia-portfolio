@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
 console.log('App.tsx: Module loaded');
 import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'motion/react';
 import { 
   Menu, X, Instagram, Mail, Phone, Plus, Trash2, Settings, LogOut, 
   Upload, Loader2, ArrowRight, ExternalLink, ChevronRight
 } from 'lucide-react';
+
+// --- Supabase Client Initialization ---
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
 // --- Custom Cursor Component ---
 const CustomCursor = ({ hoverText }: { hoverText?: string }) => {
@@ -112,31 +118,49 @@ function FileUpload({ onUpload, onUploads, label, multiple = false }: { onUpload
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
-    const formData = new FormData();
     
-    if (multiple) {
-      for (let i = 0; i < files.length; i++) {
-        formData.append('files', files[i]);
-      }
-    } else {
-      formData.append('file', files[0]);
-    }
-
     try {
-      const endpoint = multiple ? '/api/upload-multiple' : '/api/upload';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      
-      if (multiple && data.urls && onUploads) {
-        onUploads(data.urls);
-      } else if (data.url && onUpload) {
-        onUpload(data.url);
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables.');
       }
-    } catch (error) {
+      const uploadedUrls: string[] = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // Create a unique file name
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = fileName;
+
+        // Upload to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from('images')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) {
+          console.error('Supabase upload error:', error);
+          throw error;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('images')
+          .getPublicUrl(filePath);
+        
+        uploadedUrls.push(publicUrl);
+      }
+
+      if (multiple && onUploads) {
+        onUploads(uploadedUrls);
+      } else if (uploadedUrls.length > 0 && onUpload) {
+        onUpload(uploadedUrls[0]);
+      }
+    } catch (error: any) {
       console.error('Upload failed:', error);
+      alert(`Upload failed: ${error.message || 'Unknown error'}. Please ensure the 'images' bucket exists and has public access policies.`);
     } finally {
       setIsUploading(false);
     }
